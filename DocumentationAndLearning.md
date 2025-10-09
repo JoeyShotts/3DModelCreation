@@ -1,3 +1,5 @@
+https://en.wikipedia.org/wiki/STL_(file_format)
+
 **Binary .stl:** 
 Designed for large stl files. It has a 80 byte header (typically initialized to 0) a 4 byte unsigned integer (little-endianess) indicating the number of triangles in the mesh, and then 12 floats per triangle. 1 point indicating a vector normal to the trangle (this can be (0,0,0) and the software will calculate with RHR) and 3 XYZ points.
 

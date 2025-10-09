@@ -2,13 +2,15 @@
 Joseph Shotts
 10/8/2025
 C++ Code
-Description: First .stl file test. Creates a Pyramid in Binary Format.
+Description: First .stl file test. Creates a Pyramid in Ascii Format.
 */
 
 #include <fstream> // Required for file stream operations
 #include <iostream>
 #include <cmath>
 #include <cstdint>
+#include <string>
+#include <iomanip>
 
 struct TriFloatXYZ{
     float X=0;
@@ -77,34 +79,26 @@ void defTri(Triangle *newTri, TriFloatXYZ *P1, TriFloatXYZ *P2, TriFloatXYZ *P3)
     normalUnitVector(newTri);
 }
 
-void printBuffer(std::ofstream &stream){
-    char bufInit = 0;
-    //initiallize null 80 byte header
-    for(int i=0; i<80; i++){
-        stream.write((char*)&bufInit,1);
-    }
+void printName(std::ofstream &stream, const std::string &name){
+    stream << "solid " << name << std::endl;
 }
 
-void printNumTri(std::ofstream& stream, uint32_t numTris){
-    stream.write((char*)&numTris, sizeof(numTris));
-}
-
-void printPoint(std::ofstream& stream, TriFloatXYZ *P){
-    stream.write((char*)&P->X, sizeof(P->X));
-    stream.write((char*)&P->Y, sizeof(P->Y));
-    stream.write((char*)&P->Z, sizeof(P->Z));
-
+void printEnd(std::ofstream &stream, const std::string &name){
+    stream << "endsolid " << name << std::endl;
 }
 
 void printTri(std::ofstream& stream, Triangle *tri){
-    uint16_t byteC = 0; //attribute byte count
-
-    printPoint(stream, tri->normal);
-    printPoint(stream, tri->P1);
-    printPoint(stream, tri->P2);
-    printPoint(stream, tri->P3);
-
-    stream.write((char*)&byteC, sizeof(byteC));
+    stream<<"facet normal "
+        <<tri->normal->X<<" "<<tri->normal->Y<<" "<<tri->normal->Z<<" "<<std::endl;
+    stream<<"\touter loop"<<std::endl;
+    stream<<"\t\t"<<"vertex "<<
+        tri->P1->X<<" "<<tri->P1->Y<<" "<<tri->P1->Z<<" "<<std::endl;
+    stream<<"\t\t"<<"vertex "<<
+        tri->P2->X<<" "<<tri->P2->Y<<" "<<tri->P2->Z<<" "<<std::endl;
+    stream<<"\t\t"<<"vertex "<<
+        tri->P3->X<<" "<<tri->P3->Y<<" "<<tri->P3->Z<<" "<<std::endl;
+    stream<<"\tendloop"<<std::endl;
+    stream<<"endfacet"<<std::endl;
 }
 
 int main(){
@@ -132,15 +126,24 @@ int main(){
     Triangle Side4;
     defTri(&Side4, tip, nP(0,2,0), nP(0,0,0));
 
-    std::ofstream outFile("SimpleSTL_Test.stl", std::ios::out | std::ios::binary);
+    std::ofstream outFile;
+    outFile.open("SimpleAscii.stl");
+    
+    //format the floating point numbers so they will print correctly
+    outFile
+        << std::scientific    // Use scientific notation (e.g., 1.23e+02)
+        << std::showpos       // Show '+' for positive exponent AND positive number
+        << std::setprecision(6) // Set 6 digits after the decimal point
+        << std::uppercase;    // Use 'E' instead of 'e' for the exponent
 
     if (!outFile.is_open()) {
         std::cerr << "Error: Unable to open file for writing." << std::endl;
         return 1; // Indicate an error
     }
 
-    printBuffer(outFile);
-    printNumTri(outFile, 6);
+    std::string name = "SimpleAscii";
+    printName(outFile, name);
+    
     printTri(outFile, &Bottom1);
     printTri(outFile, &Bottom2);
     printTri(outFile, &Side1);
@@ -148,8 +151,9 @@ int main(){
     printTri(outFile, &Side3);
     printTri(outFile, &Side4);
 
+    printEnd(outFile, name);
+
     outFile.close();
 
-    for(;;); //for debugging
     return 0;
 }
