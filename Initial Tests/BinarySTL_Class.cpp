@@ -35,9 +35,6 @@ TriFloatXYZ *nP(float X, float Y, float Z){
 
 class STL_Binary{
 public:
-    STL_Binary(const std::string& name):
-    stl_stream_(name, std::ios::out | std::ios::binary){;}
-    
     void addTriangle(TriFloatXYZ *P1, TriFloatXYZ *P2, TriFloatXYZ *P3){
         Triangle *newFace = new Triangle;
         newFace->P1 = P1;
@@ -48,11 +45,18 @@ public:
 
     }
 
-    void renderSTL(){
-        printBuffer();
-        printNumTri();
+    void renderSTL(const std::string& name){
+        std::ofstream stl_stream(name, std::ios::out | std::ios::binary);
+
+        if (!stl_stream.is_open()) {
+            std::cerr << "Error: Unable to open file for writing." << std::endl;
+            return; // Indicate an error
+        }
+
+        printBuffer(stl_stream);
+        printNumTri(stl_stream);
         for (const Triangle* face : faces) {
-            printTri(face);
+            printTri(stl_stream, face);
         }
         stl_stream_.close();
         
@@ -84,44 +88,44 @@ public:
 private:
     std::ofstream stl_stream_; //binary stream to stl file
     std::vector<Triangle*> faces = {};
-    uint32_t triangleCount = 0;
 
-    void printBuffer(){
+    void printBuffer(std::ofstream& stream){
         char bufInit = 0;
         //initiallize null 80 byte header
         for(int i=0; i<80; i++){
-            stl_stream_.write((char*)&bufInit,1);
+            stream.write((char*)&bufInit,1);
         }
     }
 
-    void printNumTri(){
-         stl_stream_.write((char*)&triangleCount, sizeof(triangleCount));
+    void printNumTri(std::ofstream& stream){
+        uint32_t triangleCount = faces.size();
+        stream.write((char*)&triangleCount, sizeof(triangleCount));
     }
 
-    void printTri(const Triangle *tri){
+    void printTri(std::ofstream& stream, const Triangle *tri){
         //write normal to stream
-        stl_stream_.write((char*)&tri->normal->X, 4);
-        stl_stream_.write((char*)&tri->normal->Y, 4);
-        stl_stream_.write((char*)&tri->normal->Z, 4);
+        stream.write((char*)&tri->normal->X, 4);
+        stream.write((char*)&tri->normal->Y, 4);
+        stream.write((char*)&tri->normal->Z, 4);
 
-        //write point1 to stl_stream_
-        stl_stream_.write((char*)&tri->P1->X, 4);
-        stl_stream_.write((char*)&tri->P1->Y, 4);
-        stl_stream_.write((char*)&tri->P1->Z, 4);
+        //write point1 to stream
+        stream.write((char*)&tri->P1->X, 4);
+        stream.write((char*)&tri->P1->Y, 4);
+        stream.write((char*)&tri->P1->Z, 4);
 
-        //write point2 to stl_stream_
-        stl_stream_.write((char*)&tri->P2->X, 4);
-        stl_stream_.write((char*)&tri->P2->Y, 4);
-        stl_stream_.write((char*)&tri->P2->Z, 4);
+        //write point2 to stream
+        stream.write((char*)&tri->P2->X, 4);
+        stream.write((char*)&tri->P2->Y, 4);
+        stream.write((char*)&tri->P2->Z, 4);
 
-        //write point3 to stl_stream_
-        stl_stream_.write((char*)&tri->P3->X, 4);
-        stl_stream_.write((char*)&tri->P3->Y, 4);
-        stl_stream_.write((char*)&tri->P3->Z, 4);
+        //write point3 to stream
+        stream.write((char*)&tri->P3->X, 4);
+        stream.write((char*)&tri->P3->Y, 4);
+        stream.write((char*)&tri->P3->Z, 4);
 
         //attribute byte count (always 0)
         uint16_t byteC = 0; //attribute byte count
-        stl_stream_.write((char*)&byteC, sizeof(byteC));
+        stream.write((char*)&byteC, sizeof(byteC));
     }
     
     /*
@@ -144,7 +148,7 @@ private:
 int main(){
     std::cout << "Empty C++ File.";
     
-    STL_Binary simplePyramid("BinrarySTL_ClassTest.stl");
+    STL_Binary simplePyramid;
 
     //defining a 6 faced triangle pyramid (two on bottom)
     TriFloatXYZ *tip = nP(1,1,2);
@@ -167,7 +171,7 @@ int main(){
     //Side4
     simplePyramid.addTriangle(tip, nP(0,2,0), nP(0,0,0));
 
-    simplePyramid.renderSTL();
+    simplePyramid.renderSTL("BinrarySTL_ClassTest.stl");
 
     return 0;
 }
