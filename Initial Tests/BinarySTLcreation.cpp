@@ -3,6 +3,7 @@ Joseph Shotts
 10/8/2025
 C++ Code
 Description: First .stl file test. Creates a Pyramid in Binary Format.
+Created with help from: https://en.wikipedia.org/wiki/STL_(file_format)
 */
 
 #include <fstream> // Required for file stream operations

@@ -3,6 +3,7 @@ Joseph Shotts
 10/8/2025
 C++ Code
 Description: In progress code to turn a set of binary stl creation functions into a class.
+Created with help from: https://en.wikipedia.org/wiki/STL_(file_format)
 */
 
 #include <fstream> // Required for file stream operations

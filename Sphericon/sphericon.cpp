@@ -3,6 +3,7 @@ Joseph Shotts
 10/8/2025
 C++ Code
 Description: In progress code to turn a set of binary stl creation functions into a class.
+https://en.wikipedia.org/wiki/Sphericon
 */
 
 #include <fstream> // Required for file stream operations
@@ -167,9 +168,11 @@ int main(){
 
     float circleDiameter = 20; //circle diameter in mm
     float radius = circleDiameter/2.0;
-    int numTriangles = 1440;
+    int numTriangles = 720;
 
     int numSegments = numTriangles/4;
+
+    float elipseScale=0.9;
 
     //iterate through horizantal half-disc connecting points on disc(2 at a time) 
     //to top tip and bottom tip
@@ -194,7 +197,7 @@ int main(){
     for(int i=1; i<=numSegments; i++){
         dtheta = M_PI*(i/(float)numSegments);
         cur_point->X = -cos(dtheta)*radius + radius;
-        cur_point->Y = sin(dtheta)*radius + radius;
+        cur_point->Y = elipseScale*sin(dtheta)*radius + radius;
 
         sphericon.addTriangle(top, cur_point, prev_point);
         sphericon.addTriangle(bottom, prev_point, cur_point);
@@ -211,7 +214,7 @@ int main(){
     for(int i=1; i<=numSegments; i++){
         dtheta = M_PI*(i/(float)numSegments);
         cur_point->Z = -cos(dtheta)*radius + radius;
-        cur_point->Y = -sin(dtheta)*radius + radius;
+        cur_point->Y = -elipseScale*sin(dtheta)*radius + radius;
 
         sphericon.addTriangle(left, cur_point, prev_point);
         sphericon.addTriangle(right, prev_point, cur_point);

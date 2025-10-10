@@ -3,6 +3,7 @@ Joseph Shotts
 10/8/2025
 C++ Code
 Description: First .stl file test. Creates a Pyramid in Ascii Format.
+Created with help from: https://en.wikipedia.org/wiki/STL_(file_format)
 */
 
 #include <fstream> // Required for file stream operations
@@ -143,7 +144,7 @@ int main(){
 
     std::string name = "SimpleAscii";
     printName(outFile, name);
-    
+
     printTri(outFile, &Bottom1);
     printTri(outFile, &Bottom2);
     printTri(outFile, &Side1);
