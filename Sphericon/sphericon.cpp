@@ -161,32 +161,68 @@ private:
 
 
 int main(){
-    std::cout << "Simple Pyramid Created.";
-    
-    STL_Binary simplePyramid;
+    std::cout << "Creates 3D Model of Sphericon.";
 
-    //defining a 6 faced triangle pyramid (two on bottom)
-    TriFloatXYZ *tip = nP(1,1,2);
+    STL_Binary sphericon;
 
-    //Bottom1
-    simplePyramid.addTriangle(nP(0,0,0), nP(0,2,0), nP(2,0,0));
+    float circleDiameter = 20; //circle diameter in mm
+    float radius = circleDiameter/2.0;
+    int numTriangles = 1440;
 
-    //Bottom2
-    simplePyramid.addTriangle(nP(0,2,0), nP(2,2,0), nP(2,0,0));
+    int numSegments = numTriangles/4;
 
-    //Side1
-    simplePyramid.addTriangle(tip, nP(0,0,0), nP(2,0,0));
+    //iterate through horizantal half-disc connecting points on disc(2 at a time) 
+    //to top tip and bottom tip
+    TriFloatXYZ *top = nP(radius,radius,circleDiameter);
+    TriFloatXYZ *bottom = nP(radius,radius,0);
 
-    //Side2
-    simplePyramid.addTriangle(tip, nP(2,0,0), nP(2,2,0));
+    //iterate through veritcal half-disc connecting points on disc(2 at a time) 
+    //to left and right tip
+    TriFloatXYZ *left = nP(0,radius,radius);
+    TriFloatXYZ *right= nP(circleDiameter,radius,radius);
 
-    //Side3
-    simplePyramid.addTriangle(tip, nP(2,2,0), nP(0,2,0));
+    //temp variables used during iteration
+    TriFloatXYZ *cur_point = new TriFloatXYZ;
+    TriFloatXYZ *prev_point = new TriFloatXYZ;
+    float dtheta=0;
 
-    //Side4
-    simplePyramid.addTriangle(tip, nP(0,2,0), nP(0,0,0));
+    //starting points
+    copyPoint(prev_point, left);
+    cur_point->Z = radius;
 
-    simplePyramid.renderSTL("BinrarySTL_ClassTest.stl");
+    //iterate through horizontal arc
+    for(int i=1; i<=numSegments; i++){
+        dtheta = M_PI*(i/(float)numSegments);
+        cur_point->X = -cos(dtheta)*radius + radius;
+        cur_point->Y = sin(dtheta)*radius + radius;
+
+        sphericon.addTriangle(top, cur_point, prev_point);
+        sphericon.addTriangle(bottom, prev_point, cur_point);
+
+        copyPoint(prev_point, cur_point);
+    }
+
+    //iterate through vertical arc
+    //starting points
+    copyPoint(prev_point, bottom);
+    cur_point->X = radius;
+
+    //iterate through horizontal arc
+    for(int i=1; i<=numSegments; i++){
+        dtheta = M_PI*(i/(float)numSegments);
+        cur_point->Z = -cos(dtheta)*radius + radius;
+        cur_point->Y = -sin(dtheta)*radius + radius;
+
+        sphericon.addTriangle(left, cur_point, prev_point);
+        sphericon.addTriangle(right, prev_point, cur_point);
+
+        copyPoint(prev_point, cur_point);
+    }
+
+    std::cout << "Generated with " << sphericon.numTriangles() << " faces." <<std::endl;
+
+    sphericon.renderSTL("sphericon.stl");
+
 
     return 0;
 }
