@@ -161,15 +161,15 @@ private:
 }; //end STL_Binary Class
 
 
-void ParametricRotatedElipse(TriFloatXYZ* output, float t, float a, float b, TriFloatXYZ* offset){
+void ParametricRotatedElipse(TriFloatXYZ* output, float t, float u, float a, float b, TriFloatXYZ* offset){
     float theta_1 = t/2; //pattern rotated about X (prior to translation)
     float theta_2 = t + M_PI/2; //pattern rotated about Z (prior to translation)
     // -sin(\theta_{2})(cos(\theta_{1})bcos(u)-sin(\theta_{1})asin(u)
-    output->X = (-sin(theta_2)*(cos(theta_1)*b*cos(t) - sin(theta_1)*a*sin(t))) + offset->X;;
+    output->X = (-sin(theta_2)*(cos(theta_1)*b*cos(u) - sin(theta_1)*a*sin(u))) + offset->X;;
     // cos(\theta_{2})(cos(\theta_{1})bcos(u)-sin(\theta_{1})asin(u))
-    output->Y =  (cos(theta_2)*(cos(theta_1)*b*cos(t) - sin(theta_1)*a*sin(t))) + offset->Y;
+    output->Y =  (cos(theta_2)*(cos(theta_1)*b*cos(u) - sin(theta_1)*a*sin(u))) + offset->Y;
     // sin(\theta_{1})bcos(u)+asin(u)cos(\theta_{1})
-    output->Z =  (sin(theta_1)*b*cos(t) + a*sin(t)*cos(theta_1)) + offset->Z;
+    output->Z =  (sin(theta_1)*b*cos(u) + a*sin(u)*cos(theta_1)) + offset->Z;
 }
 
 int main(){
@@ -183,12 +183,12 @@ int main(){
     float EllipsePath_b = 50;
     float EllipsePath_h = 30; //height
 
-    float pattern_a = 0.4;
-    float pattern_b = 1.4;
+    float pattern_a = 4;
+    float pattern_b = 14;
 
-    int numTriangles = 1000;
+    int numTriangles = 32000;
 
-    int numPatternPoints = 25;
+    int numPatternPoints = 100;
     int numPatterns = numTriangles/numPatternPoints/2;
 
     TriFloatXYZ EllipsePath_CurPoint;
@@ -215,22 +215,22 @@ int main(){
         EllipsePath_CurPoint.X = EllipsePath_Center.X+EllipsePath_b*cos(t);
         EllipsePath_CurPoint.Y = EllipsePath_Center.Y+EllipsePath_a*sin(t);
         
-        ParametricRotatedElipse(&PrevPatternPathPrevPoint,prev_t,pattern_a,pattern_b, &EllipsePath_PrevPoint); 
-        ParametricRotatedElipse(&CurPatternPathPrevPoint, prev_t,pattern_a,pattern_b, &EllipsePath_CurPoint);
+        ParametricRotatedElipse(&PrevPatternPathPrevPoint,prev_t,0,pattern_a,pattern_b, &EllipsePath_PrevPoint); 
+        ParametricRotatedElipse(&CurPatternPathPrevPoint, t, 0,pattern_a,pattern_b, &EllipsePath_CurPoint);
 
         //loop around inner mobius pattern
         u=0;
         for(int i=0; i<numPatternPoints; i++){
-            ParametricRotatedElipse(&CurPatternPathCurPoint, t,pattern_a,pattern_b, &EllipsePath_PrevPoint); 
-            ParametricRotatedElipse(&PrevPatternPathCurPoint,t,pattern_a,pattern_b, &EllipsePath_CurPoint);
+            u += du;
+
+            ParametricRotatedElipse(&CurPatternPathCurPoint, t, u,pattern_a,pattern_b, &EllipsePath_CurPoint); 
+            ParametricRotatedElipse(&PrevPatternPathCurPoint,prev_t, u,pattern_a,pattern_b, &EllipsePath_PrevPoint);
             
             //actually add the two triangles
-            mobiusStrip.addTriangle(&CurPatternPathCurPoint, &PrevPatternPathPrevPoint, &PrevPatternPathCurPoint);
-            mobiusStrip.addTriangle(&PrevPatternPathCurPoint, &CurPatternPathCurPoint, &CurPatternPathCurPoint);
-
+            mobiusStrip.addTriangle(&CurPatternPathPrevPoint, &PrevPatternPathPrevPoint, &PrevPatternPathCurPoint);
+            mobiusStrip.addTriangle(&PrevPatternPathCurPoint, &CurPatternPathCurPoint, &CurPatternPathPrevPoint);
 
             //set up for next iteration
-            u += du;
             copyPoint(&PrevPatternPathPrevPoint, &PrevPatternPathCurPoint);
             copyPoint(&CurPatternPathPrevPoint, &CurPatternPathCurPoint);
 
