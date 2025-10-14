@@ -219,18 +219,26 @@ int main(){
     float minPyrH = 1; //minimum pyramid height
 
     TriFloatXYZ tip = {minPyrH/2, minPyrH/2, minPyrH};
+    TriFloatXYZ bottomTip = {minPyrH/2, minPyrH/2, -minPyrH};
     TriFloatXYZ p1 = {0,0,0};
     TriFloatXYZ p2 = {minPyrH,minPyrH,0};
     TriFloatXYZ p3 = {0,minPyrH,0};
     TriFloatXYZ p4 = {minPyrH,0,0};
-
+    
+    //top pyramid
     SierpinskiPyramid->addTriangle(&tip, &p1, &p4);
     SierpinskiPyramid->addTriangle(&tip, &p4, &p2);
     SierpinskiPyramid->addTriangle(&tip, &p2, &p3);
     SierpinskiPyramid->addTriangle(&tip, &p3, &p1);
+    
+    //bottom pyramid
+    SierpinskiPyramid->addTriangle(&bottomTip, &p1, &p4);
+    SierpinskiPyramid->addTriangle(&bottomTip, &p4, &p2);
+    SierpinskiPyramid->addTriangle(&bottomTip, &p2, &p3);
+    SierpinskiPyramid->addTriangle(&bottomTip, &p3, &p1);
 
     float shiftF = minPyrH; //shift factor
-    for(int i=0; i<5; i++){
+    for(int i=0; i<1; i++){
         //add bottom 0,0
         SierpinskiPyramidCur->addSTL(SierpinskiPyramid);
         
@@ -251,6 +259,11 @@ int main(){
         
         //add top
         SierpinskiPyramidPrev = SierpinskiPyramid->shiftSTL_copy(shiftF/2,shiftF/2,shiftF);
+        SierpinskiPyramidCur->addSTL(SierpinskiPyramidPrev);
+        delete SierpinskiPyramidPrev;
+
+        //add bottom
+        SierpinskiPyramidPrev = SierpinskiPyramid->shiftSTL_copy(shiftF/2,shiftF/2,-shiftF);
         SierpinskiPyramidCur->addSTL(SierpinskiPyramidPrev);
         delete SierpinskiPyramidPrev;
         
