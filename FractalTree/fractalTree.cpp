@@ -377,7 +377,7 @@ void baseTree(STL_Binary* base, TriFloatXYZ* offset, float radius, TriFloatXYZ* 
                 tempOffset.X = offset->X+prev_x;
                 horizCircle(u, prev_r, &tempOffset, &PrevPatternPathCurPoint);
             }
-
+            
             //actually add the two triangles 
             base->addTriangle(&CurPatternPathPrevPoint, &PrevPatternPathPrevPoint, &PrevPatternPathCurPoint);
             base->addTriangle(&PrevPatternPathCurPoint, &CurPatternPathCurPoint, &CurPatternPathPrevPoint);

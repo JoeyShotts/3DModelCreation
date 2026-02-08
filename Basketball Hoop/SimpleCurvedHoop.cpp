@@ -2,8 +2,8 @@
 Joseph Shotts
 10/8/2025
 C++ Code
-Description: In progress code to turn a set of binary stl creation functions into a class.
-https://en.wikipedia.org/wiki/Sphericon
+Description: 
+Creating a simple curved backboard.
 */
 
 #include <fstream> // Required for file stream operations
@@ -160,93 +160,35 @@ private:
 
 }; //end STL_Binary Class
 
-
-void ParametricRotatedElipse(TriFloatXYZ* output, float t, float u, float a, float b, TriFloatXYZ* offset){
-    float theta_1 = t/2; //pattern rotated about X (prior to translation)
-    float theta_2 = t + M_PI/2; //pattern rotated about Z (prior to translation)
-    // -sin(\theta_{2})(cos(\theta_{1})bcos(u)-sin(\theta_{1})asin(u)
-    output->X = (-sin(theta_2)*(cos(theta_1)*b*cos(u) - sin(theta_1)*a*sin(u))) + offset->X;;
-    // cos(\theta_{2})(cos(\theta_{1})bcos(u)-sin(\theta_{1})asin(u))
-    output->Y =  (cos(theta_2)*(cos(theta_1)*b*cos(u) - sin(theta_1)*a*sin(u))) + offset->Y;
-    // sin(\theta_{1})bcos(u)+asin(u)cos(\theta_{1})
-    output->Z =  (sin(theta_1)*b*cos(u) + a*sin(u)*cos(theta_1)) + offset->Z;
-}
-
 int main(){
-    std::cout << "Creates 3D Model of Mobius Strip.";
-
-    STL_Binary mobiusStrip;
-
-    TriFloatXYZ EllipsePath_Center = {80, 70, 30};
-
-    float EllipsePath_a = 30;
-    float EllipsePath_b = 50;
-    float EllipsePath_h = 30; //height
-
-    float pattern_a = 4;
-    float pattern_b = 14;
-
-    int numTriangles = 32000;
-
-    int numPatternPoints = 100;
-    int numPatterns = numTriangles/numPatternPoints/2;
-
-    TriFloatXYZ EllipsePath_CurPoint;
-    EllipsePath_CurPoint.Z = EllipsePath_h;
-    TriFloatXYZ EllipsePath_PrevPoint = {(EllipsePath_Center.X+EllipsePath_b), EllipsePath_Center.Y, EllipsePath_h};
-
-    //4 points are required, as 2 triangles are created one after the other
-    TriFloatXYZ PrevPatternPathPrevPoint;
-    TriFloatXYZ PrevPatternPathCurPoint;
-    TriFloatXYZ CurPatternPathPrevPoint;
-    TriFloatXYZ CurPatternPathCurPoint;
-
-
-    float dt = 2*M_PI/numPatterns;
-    float t = 0; //ellipse path theta iterating variable
-    float prev_t = 0;
-
-    float du = 2*M_PI/numPatternPoints;
-    float u=0;
+    std::cout << "Making a simple curved backboard.";
     
-    //loop aorund outer mobius circle
-    for(int i=1; i<=numPatterns;i++){
-        t += dt;
-        EllipsePath_CurPoint.X = EllipsePath_Center.X+EllipsePath_b*cos(t);
-        EllipsePath_CurPoint.Y = EllipsePath_Center.Y+EllipsePath_a*sin(t);
-        
-        ParametricRotatedElipse(&PrevPatternPathPrevPoint,prev_t,0,pattern_a,pattern_b, &EllipsePath_PrevPoint); 
-        ParametricRotatedElipse(&CurPatternPathPrevPoint, t, 0,pattern_a,pattern_b, &EllipsePath_CurPoint);
+    //defines back square of backboard
+    float backHeight = 17;
+    float backWidth = 34;
+    int numDivVert = 50;
+    int numDivHoriz = 80;
+    
+    //defines thickness of backboard
+    float backDepth = 10;
 
-        //loop around inner mobius pattern
-        u=0;
-        for(int i=0; i<numPatternPoints; i++){
-            u += du;
+    STL_Binary BackBoard;
 
-            ParametricRotatedElipse(&CurPatternPathCurPoint, t, u,pattern_a,pattern_b, &EllipsePath_CurPoint); 
-            ParametricRotatedElipse(&PrevPatternPathCurPoint,prev_t, u,pattern_a,pattern_b, &EllipsePath_PrevPoint);
-            
-            //actually add the two triangles
-            mobiusStrip.addTriangle(&CurPatternPathPrevPoint, &PrevPatternPathPrevPoint, &PrevPatternPathCurPoint);
-            mobiusStrip.addTriangle(&PrevPatternPathCurPoint, &CurPatternPathCurPoint, &CurPatternPathPrevPoint);
+    TriFloatXYZ Origin = {0,0,0};
+    TriFloatXYZ TopLeft = {0,0,backHeight};
+    TriFloatXYZ TopRight = {0,backWidth,backHeight};
+    TriFloatXYZ BottomRight = {0,backWidth,0};
 
-            //set up for next iteration
-            copyPoint(&PrevPatternPathPrevPoint, &PrevPatternPathCurPoint);
-            copyPoint(&CurPatternPathPrevPoint, &CurPatternPathCurPoint);
-
-        }
-
-        prev_t = t;
-        copyPoint(&EllipsePath_PrevPoint, &EllipsePath_CurPoint);
+    BackBoard.addTriangle(&Origin, &TopLeft, &TopRight);
+    BackBoard.addTriangle(&Origin, &TopRight, &BottomRight);
 
 
-    }
+    std::cout << "Generated with " << BackBoard.numTriangles() << " faces." <<std::endl;
 
-   
+    BackBoard.renderSTL("BackBoard.stl");
+    
 
-    std::cout << "Generated with " << mobiusStrip.numTriangles() << " faces." <<std::endl;
-
-    mobiusStrip.renderSTL("MobiusStrip.stl");
+    for(;;);
 
 
     return 0;
