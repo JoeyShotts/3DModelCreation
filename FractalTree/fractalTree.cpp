@@ -212,7 +212,7 @@ void copyPoint(TriFloatXYZ *copiedPoint, TriFloatXYZ *origPoint){
     copiedPoint->Z=origPoint->Z;
 }
 
-#define NUM_DIV 25
+#define NUM_DIV 32
 
 void horizCircle(float theta, float radius, TriFloatXYZ* offset, TriFloatXYZ* output){
     output->X=radius*cos(theta) + offset->X;
@@ -309,6 +309,10 @@ void baseTree(STL_Binary* base, TriFloatXYZ* offset, float radius, TriFloatXYZ* 
     //circle angular iterator
     float u=0;
     float du = 2*M_PI/NUM_DIV;
+    float start_u;
+    float end_u;
+    float prev_start_u = -M_PI_2;
+    float prev_end_u = M_PI_2;
 
     //radius iterator
     float r = radius;
@@ -338,30 +342,43 @@ void baseTree(STL_Binary* base, TriFloatXYZ* offset, float radius, TriFloatXYZ* 
         if(x > r){
             start_i=1;
             end_i=NUM_DIV;
+            start_u=0;
+            end_u=2*M_PI;
         }
         else{
-            end_i = (int)((M_PI_2 + asin(x/r)) / du);
-            start_i = (int)((-M_PI_2 - asin(x/r)) / du);
+            end_i = (int)((M_PI_2 + asin(x/r)) / du)+1;//round up
+            end_u = (M_PI_2 + asin(x/r));
+            start_i = (int)((-M_PI_2 - asin(x/r)) / du);//round down
+            start_u = (-M_PI_2 - asin(x/r));
         }
 
-        tempOffset.Z = prev_z;
-        tempOffset.X = offset->X+prev_x;
-        horizCircle(0, prev_r, &tempOffset, &CurPatternPathPrevPoint); 
         tempOffset.Z = z;
         tempOffset.X = offset->X+x;
-        horizCircle(0, r, &tempOffset, &PrevPatternPathPrevPoint);
+        horizCircle(start_u, r, &tempOffset, &CurPatternPathPrevPoint); 
+        tempOffset.Z = prev_z;
+        tempOffset.X = offset->X+prev_x;
+        horizCircle(prev_start_u, prev_r, &tempOffset, &PrevPatternPathPrevPoint);
 
         for(int i=start_i; i<=end_i; i++){
             u = i*du;
+            if(i == end_i){
+                tempOffset.Z = z;
+                tempOffset.X = offset->X+x;
+                horizCircle(end_u, r, &tempOffset, &CurPatternPathCurPoint); 
+                tempOffset.Z = prev_z;
+                tempOffset.X = offset->X+prev_x;
+                horizCircle(prev_end_u, prev_r, &tempOffset, &PrevPatternPathCurPoint);
+            }
+            else{
+                tempOffset.Z = z;
+                tempOffset.X = offset->X+x;
+                horizCircle(u, r, &tempOffset, &CurPatternPathCurPoint); 
+                tempOffset.Z = prev_z;
+                tempOffset.X = offset->X+prev_x;
+                horizCircle(u, prev_r, &tempOffset, &PrevPatternPathCurPoint);
+            }
 
-            tempOffset.Z = prev_z;
-            tempOffset.X = offset->X+prev_x;
-            horizCircle(u, prev_r, &tempOffset, &CurPatternPathCurPoint); 
-            tempOffset.Z = z;
-            tempOffset.X = offset->X+x;
-            horizCircle(u, r, &tempOffset, &PrevPatternPathCurPoint);
-
-            //actually add the two triangles
+            //actually add the two triangles 
             base->addTriangle(&CurPatternPathPrevPoint, &PrevPatternPathPrevPoint, &PrevPatternPathCurPoint);
             base->addTriangle(&PrevPatternPathCurPoint, &CurPatternPathCurPoint, &CurPatternPathPrevPoint);
 
@@ -373,69 +390,71 @@ void baseTree(STL_Binary* base, TriFloatXYZ* offset, float radius, TriFloatXYZ* 
         prev_z = z;
         prev_r = r;
         prev_x = x;
+        prev_start_u = start_u;
+        prev_end_u = end_u;
     }
 
-    x=0;
-    prev_x=0;
-    r = radius;
-    prev_r = radius;
-    z=radius*2;
-    prev_z=radius*2;
+    // x=0;
+    // prev_x=0;
+    // r = radius;
+    // prev_r = radius;
+    // z=radius*2;
+    // prev_z=radius*2;
 
-    start_i=1;
-    end_i=NUM_DIV;
+    // start_i=1;
+    // end_i=NUM_DIV;
 
-    //loop from bottom to top, slowly reducing radius until it's halfed, slowly shifting circle center point
-    for(int i=0; i<NUM_DIV;i++){
-        z += dz;
-        r -= dr;
-        x -= dx;
+    // //loop from bottom to top, slowly reducing radius until it's halfed, slowly shifting circle center point
+    // for(int i=0; i<NUM_DIV;i++){
+    //     z += dz;
+    //     r -= dr;
+    //     x -= dx;
 
-        //loop around circle
-        //distance between circles = 2*x
-        //full circle when 2*x > 2*r or x > r
-        //for the right circle, start ang = (3Pi/2 - asin(x/r)) = -(2PI - (3Pi/2 - asin(x/r)) = -Pi/2-asin(x/r)
-        //for the right circle, end ang = Pi/2 + asin(x/r)
+    //     //loop around circle
+    //     //distance between circles = 2*x
+    //     //full circle when 2*x > 2*r or x > r
+    //     //for the right circle, start ang = (3Pi/2 - asin(x/r)) = -(2PI - (3Pi/2 - asin(x/r)) = -Pi/2-asin(x/r)
+    //     //for the right circle, end ang = Pi/2 + asin(x/r)
 
-        if((-x) > r){
-            start_i=-1;
-            end_i=-NUM_DIV;
-        }
-        else{
-            end_i = (int)((M_PI_2 + asin(x/r)) / du)-25;
-            start_i = (int)((-M_PI_2 - asin(x/r)) / du);
-        }
+    //     if((-x) > r){
+    //         start_i=-1;
+    //         end_i=-NUM_DIV;
+    //     }
+    //     else{
+    //         end_i = (int)((M_PI_2 + asin(x/r)) / du)-25;
+    //         start_i = (int)((-M_PI_2 - asin(x/r)) / du);
+    //     }
 
-        tempOffset.Z = prev_z;
-        tempOffset.X = offset->X+prev_x;
-        horizCircle(0, prev_r, &tempOffset, &CurPatternPathPrevPoint); 
-        tempOffset.Z = z;
-        tempOffset.X = offset->X+x;
-        horizCircle(0, r, &tempOffset, &PrevPatternPathPrevPoint);
+    //     tempOffset.Z = prev_z;
+    //     tempOffset.X = offset->X+prev_x;
+    //     horizCircle(0, prev_r, &tempOffset, &CurPatternPathPrevPoint); 
+    //     tempOffset.Z = z;
+    //     tempOffset.X = offset->X+x;
+    //     horizCircle(0, r, &tempOffset, &PrevPatternPathPrevPoint);
 
-        for(int i=start_i; i>=end_i; i--){
-            u = i*du;
+    //     for(int i=start_i; i>=end_i; i--){
+    //         u = i*du;
 
-            tempOffset.Z = prev_z;
-            tempOffset.X = offset->X+prev_x;
-            horizCircle(u, prev_r, &tempOffset, &CurPatternPathCurPoint); 
-            tempOffset.Z = z;
-            tempOffset.X = offset->X+x;
-            horizCircle(u, r, &tempOffset, &PrevPatternPathCurPoint);
+    //         tempOffset.Z = prev_z;
+    //         tempOffset.X = offset->X+prev_x;
+    //         horizCircle(u, prev_r, &tempOffset, &CurPatternPathCurPoint); 
+    //         tempOffset.Z = z;
+    //         tempOffset.X = offset->X+x;
+    //         horizCircle(u, r, &tempOffset, &PrevPatternPathCurPoint);
 
-            //actually add the two triangles
-            base->addTriangle(&CurPatternPathPrevPoint, &PrevPatternPathPrevPoint, &PrevPatternPathCurPoint);
-            base->addTriangle(&PrevPatternPathCurPoint, &CurPatternPathCurPoint, &CurPatternPathPrevPoint);
+    //         //actually add the two triangles
+    //         base->addTriangle(&CurPatternPathPrevPoint, &PrevPatternPathPrevPoint, &PrevPatternPathCurPoint);
+    //         base->addTriangle(&PrevPatternPathCurPoint, &CurPatternPathCurPoint, &CurPatternPathPrevPoint);
 
-            //set up for next iteration
-            copyPoint(&PrevPatternPathPrevPoint, &PrevPatternPathCurPoint);
-            copyPoint(&CurPatternPathPrevPoint, &CurPatternPathCurPoint);
+    //         //set up for next iteration
+    //         copyPoint(&PrevPatternPathPrevPoint, &PrevPatternPathCurPoint);
+    //         copyPoint(&CurPatternPathPrevPoint, &CurPatternPathCurPoint);
 
-        }
-        prev_z = z;
-        prev_r = r;
-        prev_x = x;
-    }
+    //     }
+    //     prev_z = z;
+    //     prev_r = r;
+    //     prev_x = x;
+    // }
 }
 
 void baseTreeR(STL_Binary* base){
@@ -457,7 +476,6 @@ int main(){
     std::cout << "Generated with " << FractalTree.numTriangles() << " faces." <<std::endl;
 
     FractalTree.renderSTL("FractalTree.stl");
-
 
     return 0;
 }
