@@ -12,6 +12,9 @@ Creating a simple curved backboard.
 #include <cstdint>
 #include <vector>
 #include <windows.h>
+#include <unordered_map>
+
+#define FLOAT_E (float)1e-08
 
 struct TriFloatXYZ{
     float X=0;
@@ -45,17 +48,40 @@ class STL_Binary{
 public:
     Triangle* addTriangle(TriFloatXYZ *P1, TriFloatXYZ *P2, TriFloatXYZ *P3){
         Triangle *newFace = new Triangle;
-        newFace->P1 = new TriFloatXYZ;
-        newFace->P2 = new TriFloatXYZ;
-        newFace->P3 = new TriFloatXYZ;
-
-        copyPoint(newFace->P1, P1);
-        copyPoint(newFace->P2, P2);
-        copyPoint(newFace->P3, P3);
+        newFace->P1 = findPoint(P1);
+        newFace->P2 = findPoint(P2);
+        newFace->P3 = findPoint(P3);
 
         normalUnitVector(newFace);
         faces.push_back(newFace);
         return newFace;
+    }
+
+    //searches all points (by float comparison), returns point if found, 
+    //else returns new point
+    TriFloatXYZ* findPoint(TriFloatXYZ* P){
+        TriFloatXYZ compare;
+        for(auto v:vertices){
+            compare.X = ::fabs(P->X - v->X);
+            if(compare.X > FLOAT_E){
+                continue;
+            }
+            compare.Y = ::fabs(P->Y - v->Y);
+            if(compare.Y > FLOAT_E){
+                continue;
+            }
+            compare.Z = ::fabs(P->Z - v->Z);
+            if(compare.Z > FLOAT_E){
+                continue;
+            }
+            //return the point if it's found
+            return v;
+        }
+        //create new point, add it to vertices vector, return it
+        TriFloatXYZ* newPoint = new TriFloatXYZ;
+        copyPoint(newPoint, P);
+        vertices.push_back(newPoint);
+        return newPoint;
     }
 
     int numTriangles(){
@@ -105,6 +131,7 @@ public:
 private:
     std::ofstream stl_stream_; //binary stream to stl file
     std::vector<Triangle*> faces = {};
+    std::vector<TriFloatXYZ*> vertices = {};
 
     void printBuffer(std::ofstream& stream){
         char bufInit = 0;
@@ -158,7 +185,6 @@ private:
         delete VectorP1P2;
         delete VectorP1P3;
     }
-
 }; //end STL_Binary Class
 
 int main(){
