@@ -61,10 +61,11 @@ public:
     //else returns new point
     TriFloatXYZ* findPoint(TriFloatXYZ* P){
         TriFloatXYZ compare;
+        //loop through all points
         for(auto v:vertices){
-            compare.X = ::fabs(P->X - v->X);
-            if(compare.X > FLOAT_E){
-                continue;
+            compare.X = ::fabs(P->X - v->X); //get x difference
+            if(compare.X > FLOAT_E){ //compare x difference against tiny epsilon value
+                continue; //if different enough go to next vertice
             }
             compare.Y = ::fabs(P->Y - v->Y);
             if(compare.Y > FLOAT_E){
@@ -74,7 +75,7 @@ public:
             if(compare.Z > FLOAT_E){
                 continue;
             }
-            //return the point if it's found
+            //return the point if all coordinates are close enough
             return v;
         }
         //create new point, add it to vertices vector, return it
