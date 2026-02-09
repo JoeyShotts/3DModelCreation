@@ -164,6 +164,9 @@ private:
 int main(){
     std::cout << "Making a simple curved backboard.\n";
     
+    //defines parameters for target
+    TriFloatXYZ targetPoint = {10, 15, -1.5};
+
     //defines back square of backboard
     float backHeight = 17;
     float backWidth = 34;
@@ -173,7 +176,7 @@ int main(){
     float dHoriz = backWidth/numDivHoriz;
     
     //defines min thickness of backboard
-    float backDepth = 5;
+    float backDepth = 3;
 
     STL_Binary BackBoard;
 
@@ -202,7 +205,11 @@ int main(){
     //store top row triangles
     Triangle* tri1;
     Triangle* tri2;
-    Triangle* curveTopTris[numDivHoriz]; 
+    Triangle* curveTopTris[numDivHoriz];
+    Triangle* curveBottomTris[numDivHoriz];
+    Triangle* curveLeftTris[numDivVert];
+    Triangle* curveRightTris[numDivVert];
+
 
     //iterate vertically through squares
     for(int i=(-numDivVert/2); i<numDivVert/2; i++){
@@ -243,13 +250,29 @@ int main(){
             tri1= BackBoard.addTriangle(&C1, &C2, &C3);
             tri2= BackBoard.addTriangle(&C1, &C3, &C4);
 
+            //if bottom triangle row store tri pointer to array
+            if(i == -(numDivVert/2)){
+                curveBottomTris[j+numDivHoriz/2] = tri2; //adjust j to be 0-numDivVert
+            }
+
             //if top triangle row store tri pointer to array
             if(i == (numDivVert/2-1)){
-                curveTopTris[j+numDivHoriz/2] = tri1; //adjust i to be 0-numDivVert
+                curveTopTris[j+numDivHoriz/2] = tri1; //adjust j to be 0-numDivVert
             }
+
+            //if left triangle row store tri pointer to array
+            if(j == -(numDivHoriz/2)){
+                curveLeftTris[i+numDivVert/2] = tri1; //adjust i to be 0-numDivHoriz
+            }
+            //if right triangle row store tri pointer to array
+            if(j == (numDivHoriz/2-1)){
+                curveRightTris[i+numDivVert/2] = tri2; //adjust i to be 0-numDivHoriz
+            }
+
         }
     }
 
+    //add top face
     C1.Z = backHeight;
     C2.Z = backHeight;
     C3.Z = backHeight;
@@ -273,6 +296,76 @@ int main(){
         BackBoard.addTriangle(&C1, &C3, &C4);
     }
 
+    //Add Bottom Face
+    C1.Z = 0;
+    C2.Z = 0;
+    C3.Z = 0;
+    C4.Z = 0;
+    C1.Y = 0;
+    C2.Y = 0;
+    
+    for(int i=0; i<numDivHoriz; i++){
+        C1.X = i*dHoriz;
+        C2.X = (i+1)*dHoriz;
+        C3.X = (i+1)*dHoriz;
+        C4.X = i*dHoriz;
+
+        //use stored array to get Y value of top row of triangles
+        C3.Y = curveBottomTris[i]->P3->Y;
+        C4.Y = curveBottomTris[i]->P1->Y;
+
+        //add triangle
+        BackBoard.addTriangle(&C3, &C2, &C1);
+        BackBoard.addTriangle(&C4, &C3, &C1);
+    }
+
+    //add left face
+    C1.X = 0;
+    C2.X = 0;
+    C3.X = 0;
+    C4.X = 0;
+    C1.Y = 0;
+    C2.Y = 0;
+    
+    for(int i=0; i<numDivVert; i++){
+        C1.Z = i*dVert;
+        C2.Z = (i+1)*dVert;
+        C3.Z = (i+1)*dVert;
+        C4.Z = i*dVert;
+
+        //use stored array to get Y value of top row of triangles
+        C3.Y = curveLeftTris[i]->P2->Y;
+        C4.Y = curveLeftTris[i]->P1->Y;
+
+        //add triangle
+        BackBoard.addTriangle(&C1, &C2, &C3);
+        BackBoard.addTriangle(&C1, &C3, &C4);
+    }
+
+    //add right face
+    C1.X = backWidth;
+    C2.X = backWidth;
+    C3.X = backWidth;
+    C4.X = backWidth;
+    C1.Y = 0;
+    C2.Y = 0;
+    
+    for(int i=0; i<numDivVert; i++){
+        C1.Z = i*dVert;
+        C2.Z = (i+1)*dVert;
+        C3.Z = (i+1)*dVert;
+        C4.Z = i*dVert;
+
+        //use stored array to get Y value of top row of triangles
+        C3.Y = curveRightTris[i]->P2->Y;
+        C4.Y = curveRightTris[i]->P3->Y;
+
+        //add triangle
+        BackBoard.addTriangle(&C3, &C2, &C1);
+        BackBoard.addTriangle(&C4, &C3, &C1);
+    }
+
+    //Render STL
     std::cout << "Generated with " << BackBoard.numTriangles() << " faces." <<std::endl;
 
     BackBoard.renderSTL("BackBoard.stl");
