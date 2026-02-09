@@ -164,8 +164,21 @@ private:
 int main(){
     std::cout << "Making a simple curved backboard.\n";
     
+    //all units are cm for simplicity
+    //shooter area: all area that a shot may occur from
+    //target: target point for a ball to hit 
+
     //defines parameters for target
     TriFloatXYZ targetPoint = {10, 15, -1.5};
+
+    float dShooter = 1; //defines the iterating size in cm over the shooter area
+
+    float shootHeightMin = 145;
+    float shootHeightMax = 190;
+    
+    float minShootDistance = 50; //min distance from target
+    float shooterWidth = 200; //shooter box width
+    float shooterDepth = 200; //shooter box depth
 
     //defines back square of backboard
     float backHeight = 17;
@@ -180,41 +193,35 @@ int main(){
 
     STL_Binary BackBoard;
 
-    //create back
-    TriFloatXYZ Origin = {0,0,0};
-    TriFloatXYZ TopLeft = {0,0,backHeight};
-    TriFloatXYZ TopRight = {backWidth,0,backHeight};
-    TriFloatXYZ BottomRight = {backWidth,0,0};
-
-    BackBoard.addTriangle(&TopRight, &TopLeft, &Origin);
-    BackBoard.addTriangle(&BottomRight, &TopRight, &Origin);
-
-    //create initial curved front of backboard
-    //C for corner
+    //C for corner, used as temp variables
     TriFloatXYZ C1; //Bottom Left
     TriFloatXYZ C2; //Top Left
     TriFloatXYZ C3; //Top Right
     TriFloatXYZ C4; //Bottom Right
 
+    //create initial curved front of backboard
     float x_alpha = 0.2/backHeight; //defines parabolic shape of curve in horizontal direction
     float z_alpha = 0.2/backHeight; //defines parabolic shape of curve in vertical direction
-    float x_adjust = (numDivHoriz/2)*dHoriz;
-    float z_adjust = (numDivVert/2)*dVert;
-    float y_adjust = backDepth;
 
-    //store top row triangles
+    //store triangles
     Triangle* tri1;
     Triangle* tri2;
     Triangle* curveTopTris[numDivHoriz];
     Triangle* curveBottomTris[numDivHoriz];
     Triangle* curveLeftTris[numDivVert];
     Triangle* curveRightTris[numDivVert];
+    Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]; //two triangles per division
 
+    int halfVert = numDivVert/2;
+    int halfHoriz = numDivHoriz/2;
+    float x_adjust = halfHoriz*dHoriz;
+    float z_adjust = halfVert*dVert;
+    float y_adjust = backDepth;
 
     //iterate vertically through squares
-    for(int i=(-numDivVert/2); i<numDivVert/2; i++){
+    for(int i= (-halfVert); i < halfVert; i++){
         //iterate horizontally through squares
-        for(int j=(-numDivHoriz/2); j<numDivHoriz/2; j++){
+        for(int j=(-halfHoriz); j<halfHoriz; j++){
             //get all 4 points of each square C1,C2,C3,C4
             //each square needs X, Y to be centered on center of back for parabola equation
             C1.X = dHoriz*j;
@@ -249,26 +256,29 @@ int main(){
             //add square to curve as two triangles
             tri1= BackBoard.addTriangle(&C1, &C2, &C3);
             tri2= BackBoard.addTriangle(&C1, &C3, &C4);
+            
+            //store all triangle faces
+            curvedFrontTris[i+halfVert][2*j+halfHoriz] = tri1;
+            curvedFrontTris[i+halfVert][2*j+halfHoriz+1] = tri2;
 
             //if bottom triangle row store tri pointer to array
             if(i == -(numDivVert/2)){
-                curveBottomTris[j+numDivHoriz/2] = tri2; //adjust j to be 0-numDivVert
+                curveBottomTris[j+halfHoriz] = tri2; //adjust j to be 0-numDivVert
             }
 
             //if top triangle row store tri pointer to array
             if(i == (numDivVert/2-1)){
-                curveTopTris[j+numDivHoriz/2] = tri1; //adjust j to be 0-numDivVert
+                curveTopTris[j+halfHoriz] = tri1; //adjust j to be 0-numDivVert
             }
 
             //if left triangle row store tri pointer to array
             if(j == -(numDivHoriz/2)){
-                curveLeftTris[i+numDivVert/2] = tri1; //adjust i to be 0-numDivHoriz
+                curveLeftTris[i+halfVert] = tri1; //adjust i to be 0-numDivHoriz
             }
             //if right triangle row store tri pointer to array
             if(j == (numDivHoriz/2-1)){
-                curveRightTris[i+numDivVert/2] = tri2; //adjust i to be 0-numDivHoriz
+                curveRightTris[i+halfVert] = tri2; //adjust i to be 0-numDivHoriz
             }
-
         }
     }
 
@@ -363,6 +373,31 @@ int main(){
         //add triangle
         BackBoard.addTriangle(&C3, &C2, &C1);
         BackBoard.addTriangle(&C4, &C3, &C1);
+    }
+
+    //Add Back
+    C1.Y = 0;
+    C2.Y = 0;
+    C3.Y = 0;
+    C4.Y = 0;
+
+    for(int i=0; i<numDivVert; i++){
+        for(int j=0; j<numDivHoriz; j++){
+            C1.X = j*dHoriz;
+            C1.Z = i*dVert;
+
+            C2.X = (j+1)*dHoriz;
+            C2.Z = i*dVert;
+
+            C3.X = (j+1)*dHoriz;
+            C3.Z = (i+1)*dVert;
+
+            C4.X = j*dHoriz;
+            C4.Z = (i+1)*dVert;
+
+            BackBoard.addTriangle(&C1, &C2, &C3);
+            BackBoard.addTriangle(&C1, &C3, &C4);
+        }
     }
 
     //Render STL
