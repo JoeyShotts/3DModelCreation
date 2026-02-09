@@ -168,17 +168,20 @@ int main(){
     //shooter area: all area that a shot may occur from
     //target: target point for a ball to hit 
 
-    //defines parameters for target
-    TriFloatXYZ targetPoint = {10, 15, -1.5};
+    //defines parameters for target relative to origin
+    TriFloatXYZ targetPoint = {11.09, 15, -1.5};
 
     float dShooter = 1; //defines the iterating size in cm over the shooter area
 
-    float shootHeightMin = 145;
-    float shootHeightMax = 190;
+    //based on typical height of an individual, shooting just over the head
+    float shootHeightMin = 155; //5ft
+    float shootHeightMax = 200; //6.5 ft
+
+    float maxArcHeight = 245; //around 8ft or the typical ceiling height
     
-    float minShootDistance = 50; //min distance from target
-    float shooterWidth = 200; //shooter box width
-    float shooterDepth = 200; //shooter box depth
+    float minShootDistance = 50; //min distance from target, 1.6 ft
+    float shootBoxWidth = 200; //shooter box width
+    float shootBoxDepth = 200; //shooter box depth
 
     //defines back square of backboard
     float backHeight = 17;
