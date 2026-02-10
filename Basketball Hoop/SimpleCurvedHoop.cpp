@@ -99,7 +99,8 @@ public:
 
         printBuffer(stl_stream);
         printNumTri(stl_stream);
-        for (const Triangle* face : faces) {
+        for (Triangle* face : faces) {
+            normalUnitVector(face); //recalculate the unit vector
             printTri(stl_stream, face);
         }
         stl_stream_.close();
