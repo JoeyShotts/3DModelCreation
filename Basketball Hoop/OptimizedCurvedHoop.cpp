@@ -14,6 +14,7 @@ Creating a simple curved backboard.
 #include <unordered_map>
 #include <time.h>
 
+//for STL Class
 #define FLOAT_E (float)1e-09 //used for float comparison
 
 struct TriFloatXYZ{
@@ -29,6 +30,7 @@ struct Triangle{
     TriFloatXYZ *P3;
 };
 
+//used when testing individual faces in seperate threads
 struct faceTest{
     TriFloatXYZ P1;
     TriFloatXYZ P2;
@@ -38,12 +40,16 @@ struct faceTest{
     bool  testCompleted;
 };
 
+//critical values used to define shape backboard, essentially defines number of faces
 #define numDivVert (int)60 //must be even
 #define numDivHoriz (int)120 //must be even
 
+//functions used to test face
 void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]);
 void testFace(void* faceIn);
 
+
+//STL Class Definitions **************************************************************
 //for new point
 TriFloatXYZ *nP(float X, float Y, float Z){
     TriFloatXYZ *point = new TriFloatXYZ;
@@ -57,6 +63,36 @@ void copyPoint(TriFloatXYZ *copiedPoint, TriFloatXYZ *origPoint){
     copiedPoint->X=origPoint->X;
     copiedPoint->Y=origPoint->Y;
     copiedPoint->Z=origPoint->Z;
+}
+
+//calculates unit normal of face and sets parameter normal to that value
+//this function is self contained as it's intended to use externally of the STL Class
+void getNormal(Triangle* tri, TriFloatXYZ *resultVector){
+    TriFloatXYZ VectorP1P2; // = subtractTwoPoints(triangle->P1, triangle->P2);
+    VectorP1P2.X = tri->P1->X - tri->P2->X;
+    VectorP1P2.Y = tri->P1->Y - tri->P2->Y;
+    VectorP1P2.Z = tri->P1->Z - tri->P2->Z;
+
+    TriFloatXYZ VectorP1P3; // = subtractTwoPoints(triangle->P1, triangle->P3);
+    VectorP1P3.X = tri->P1->X - tri->P3->X;
+    VectorP1P3.Y = tri->P1->Y - tri->P3->Y;
+    VectorP1P3.Z = tri->P1->Z - tri->P3->Z;
+
+    TriFloatXYZ *V1 = &VectorP1P2;
+    TriFloatXYZ *V2 = &VectorP1P3;
+
+    //calculate unitvector
+    resultVector->X = (V1->Y * V2->Z) - (V1->Z*V2->Y); //i
+    resultVector->Y = (V1->Z * V2->X) - (V1->X*V2->Z); //j
+    resultVector->Z = (V1->X * V2->Y) - (V1->Y*V2->X); //k
+
+    //find magnitude and divide to get unit vector
+    float magnitude = resultVector->X*resultVector->X + resultVector->Y*resultVector->Y;
+    magnitude += resultVector->Z*resultVector->Z;
+    magnitude = sqrt(magnitude);
+    resultVector->X = resultVector->X/magnitude;
+    resultVector->Y = resultVector->Y/magnitude;
+    resultVector->Z = resultVector->Z/magnitude;
 }
 
 class STL_Binary{
@@ -120,36 +156,6 @@ public:
         }
         stl_stream_.close();
         
-    }
-
-    //calculates unit normal of face and sets parameter normal to that value
-    //this function is self contained as it's intended to use externally of the STL Class
-    void getNormal(Triangle* tri, TriFloatXYZ *resultVector){
-        TriFloatXYZ VectorP1P2; // = subtractTwoPoints(triangle->P1, triangle->P2);
-        VectorP1P2.X = tri->P1->X - tri->P2->X;
-        VectorP1P2.Y = tri->P1->Y - tri->P2->Y;
-        VectorP1P2.Z = tri->P1->Z - tri->P2->Z;
-
-        TriFloatXYZ VectorP1P3; // = subtractTwoPoints(triangle->P1, triangle->P3);
-        VectorP1P3.X = tri->P1->X - tri->P3->X;
-        VectorP1P3.Y = tri->P1->Y - tri->P3->Y;
-        VectorP1P3.Z = tri->P1->Z - tri->P3->Z;
-
-        TriFloatXYZ *V1 = &VectorP1P2;
-        TriFloatXYZ *V2 = &VectorP1P3;
-
-        //calculate unitvector
-        resultVector->X = (V1->Y * V2->Z) - (V1->Z*V2->Y); //i
-        resultVector->Y = (V1->Z * V2->X) - (V1->X*V2->Z); //j
-        resultVector->Z = (V1->X * V2->Y) - (V1->Y*V2->X); //k
-
-        //find magnitude and divide to get unit vector
-        float magnitude = resultVector->X*resultVector->X + resultVector->Y*resultVector->Y;
-        magnitude += resultVector->Z*resultVector->Z;
-        magnitude = sqrt(magnitude);
-        resultVector->X = resultVector->X/magnitude;
-        resultVector->Y = resultVector->Y/magnitude;
-        resultVector->Z = resultVector->Z/magnitude;
     }
 
     TriFloatXYZ *subtractTwoPoints(TriFloatXYZ *P1, TriFloatXYZ *P2){
@@ -234,6 +240,8 @@ private:
     }
 }; //end STL_Binary Class
 
+// MAIN *********************************************
+//Creates basic curve, optimizes curve, creates top, bottom, sides, and back.
 int main(){
     std::cout << "Making a simple curved backboard.\n";
     
@@ -473,6 +481,7 @@ int main(){
     return 0;
 }
 
+// Optimization Function *********************************************
 void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]){
     std::cout << "Optimizing Curved Front...";
 
@@ -532,31 +541,72 @@ void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]
     }
 }
 
+//Constants for Single Face Test*********************************************
+//shooter area: all area that a shot may occur from
+//target: target point for a ball to hit 
+
+//defines parameters for target relative to origin
+const float ballRadius = 5.08;
+const float ballBounceRestitution = 0.5; //how bouncy the ball is
+const TriFloatXYZ targetPoint = {11.09, 15-ballRadius, -1.5};
+
+const float dShooter = 1; //defines the iterating size in cm over the shooter area
+
+//based on typical height of an individual, shooting just over the head
+const float shootHeightMin = 155; //5ft
+const float shootHeightMax = 200; //6.5 ft
+
+const float maxArcHeight = 245; //around 8ft or the typical ceiling height
+
+const float minShootDistance = 50; //min distance from target, 1.6 ft
+const float shootBoxWidth = 200; //shooter box width
+const float shootBoxDepth = 200; //shooter box depth
+const float shootBoxHeight = shootHeightMin-shootHeightMax;
+const float shootBoxXStart = targetPoint.X - shootBoxWidth/2;
+
+const int shootBoxXDiv = (int)(shootBoxWidth/dShooter);
+const int shootBoxYDiv = (int)(shootBoxDepth/dShooter);
+const int shootBoxZDiv = (int)(shootBoxHeight/dShooter);
+const int numShootPos  = shootBoxXDiv*shootBoxYDiv*shootBoxZDiv;
 
 //tests a single face defined in the faceTest structure
 //designed so that it only access faceTest structure and can consequentially run in a seperate thread
 void testFace(void* faceIn){
     faceTest* face = (faceTest*)faceIn;
+    int numTargetHits = 0;
+    TriFloatXYZ ballEnd;
+    TriFloatXYZ bouncePoint;
+    TriFloatXYZ ballStart;
+    TriFloatXYZ faceNV; //normal unit vector to face
 
-    //shooter area: all area that a shot may occur from
-    //target: target point for a ball to hit 
+    Triangle faceNormal = {&(face->P1), &(face->P2),&(face->P3)};
+    getNormal(&faceNormal, &faceNV);
 
-    //defines parameters for target relative to origin
-    TriFloatXYZ targetPoint = {11.09, 15, -1.5};
+    //get center point of face
+    bouncePoint.X = (face->P1.X + face->P2.X + face->P3.X + face->P4.X)/4; 
+    bouncePoint.Y = (face->P1.Y + face->P2.Y + face->P3.Y + face->P4.Y)/4; 
+    bouncePoint.Z = (face->P1.Z + face->P2.Z + face->P3.Z + face->P4.Z)/4; 
 
-    float dShooter = 1; //defines the iterating size in cm over the shooter area
+    //iterate through all shooting positions
+    for(int i=0; i<shootBoxXDiv; i++){
+        for(int j=0; j<shootBoxYDiv; j++){
+            for(int k=0; k<shootBoxZDiv; k++){
+                ballStart.X = i*dShooter + shootBoxXStart;
+                ballStart.Y = j*dShooter + minShootDistance;
+                ballStart.Z = k*dShooter + shootHeightMin;
 
-    //based on typical height of an individual, shooting just over the head
-    float shootHeightMin = 155; //5ft
-    float shootHeightMax = 200; //6.5 ft
+                findTrajectory(&ballEnd, &bouncePoint, &ballStart, &faceNV);
 
-    float maxArcHeight = 245; //around 8ft or the typical ceiling height
-    
-    float minShootDistance = 50; //min distance from target, 1.6 ft
-    float shootBoxWidth = 200; //shooter box width
-    float shootBoxDepth = 200; //shooter box depth
+                //test if ballEnd is within exceptable range of target
+            }
+        }
+    }
 
-    
-
+    face->performance = ((float)numTargetHits)/numShootPos; //percentage of successful shots
     face->testCompleted = true;
+}
+
+//finds the ball end given parameters
+bool findTrajectory(TriFloatXYZ* ballEnd, TriFloatXYZ* bouncePoint, TriFloatXYZ* ballStart, TriFloatXYZ* faceNV){
+
 }
