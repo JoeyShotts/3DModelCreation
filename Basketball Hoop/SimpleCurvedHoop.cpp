@@ -300,8 +300,6 @@ int main(){
         }
     }
 
-    optimizeBackboardCurve(curvedFrontTris);
-
     //add top face
     std::cout << "Create Top.\n";
     C1.Z = backHeight;
@@ -432,83 +430,3 @@ int main(){
     std::cout << "Program Completed Successfully.";
     return 0;
 }
-
-void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]){
-    std::cout << "Optimizing Curved Front...";
-
-    // curvedFrontTris[1][1]->P1->Y += 1; //test
-
-    //shooter area: all area that a shot may occur from
-    //target: target point for a ball to hit 
-    //face: a square that matches up with the number of vert and horiz divisions
-    //every face has two triangles, and 4 adjustable points
-
-    //defines parameters for target relative to origin
-    TriFloatXYZ targetPoint = {11.09, 15, -1.5};
-
-    float dShooter = 1; //defines the iterating size in cm over the shooter area
-
-    //based on typical height of an individual, shooting just over the head
-    float shootHeightMin = 155; //5ft
-    float shootHeightMax = 200; //6.5 ft
-
-    float maxArcHeight = 245; //around 8ft or the typical ceiling height
-    
-    float minShootDistance = 50; //min distance from target, 1.6 ft
-    float shootBoxWidth = 200; //shooter box width
-    float shootBoxDepth = 200; //shooter box depth
-
-    //random seed
-    srand(static_cast<unsigned int>(time(0)));
-
-    //loop through all faces
-    int numFaces = numDivHoriz*numDivVert; 
-    bool wasFaceChanged[numFaces];
-    int faceID; //integer divide by numDivHoriz to get row(0-numDivVert), modulo numDivHoriz to get column(0-numDivHoriz)
-
-    //two triangles of face
-    Triangle *curFaceTri1;
-    Triangle *curFaceTri2;
-
-    //for corners of face
-    TriFloatXYZ *C1;
-    TriFloatXYZ *C2;
-    TriFloatXYZ *C3;
-    TriFloatXYZ *C4;
-
-    int row, col;
-
-    //reset wasFaceChanged for all faces
-    for(int i=0; i<numFaces;i++){
-        wasFaceChanged[i] = false;
-    }
-    for(int i=0; i<numFaces; i++){
-        faceID = i;
-        faceID = rand() % numFaces;
-        //find a new face if a face has already been changed
-        while(wasFaceChanged[faceID]){
-            faceID++;
-            faceID %= numFaces;
-        }
-        wasFaceChanged[faceID] = true;
-        
-        //get current face
-        row= faceID/numDivHoriz;
-        col= faceID % (2*numDivHoriz);
-        curFaceTri1 = curvedFrontTris[row][col];
-        curFaceTri2 = curvedFrontTris[row][col+1];
-
-        C1 = curFaceTri1->P1;
-        C2 = curFaceTri1->P2;
-        C3 = curFaceTri1->P3;
-        C4 = curFaceTri2->P3;
-
-        // //test to see if I'm accesses all points correctly
-        // C1->Y += 0.1;
-        // C2->Y += 0.1;
-        // C3->Y += 0.1;
-        // C4->Y += 0.1;
-    }
-}
-
-//seg fault at > 7170
