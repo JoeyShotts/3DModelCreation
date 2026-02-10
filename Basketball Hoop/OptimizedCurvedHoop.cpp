@@ -18,9 +18,9 @@ Creating a simple curved backboard.
 #define FLOAT_E (float)1e-09 //used for float comparison
 
 struct TriFloatXYZ{
-    float X=0;
-    float Y=0;
-    float Z=0;
+    float X;
+    float Y;
+    float Z;
 };
 
 struct Triangle{
@@ -47,8 +47,8 @@ struct faceTest{
 
 //functions used to test face
 void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2], float avgWidthHeight);
-void* testFace(void* faceIn);
-
+void testFace(void* faceIn);
+void findTrajectory(TriFloatXYZ* ballEnd, TriFloatXYZ* bouncePoint, TriFloatXYZ* ballStart, TriFloatXYZ* faceNV, float maxH);
 
 //STL Class Definitions **************************************************************
 //for new point
@@ -68,7 +68,7 @@ void copyPoint(TriFloatXYZ *copiedPoint, TriFloatXYZ *origPoint){
 
 //calculates unit normal of face and sets parameter normal to that value
 //this function is self contained as it's intended to use externally of the STL Class
-void getNormal(Triangle* tri, TriFloatXYZ *resultVector){
+void getNormal(Triangle* tri){
     TriFloatXYZ VectorP1P2; // = subtractTwoPoints(triangle->P1, triangle->P2);
     VectorP1P2.X = tri->P1->X - tri->P2->X;
     VectorP1P2.Y = tri->P1->Y - tri->P2->Y;
@@ -83,17 +83,17 @@ void getNormal(Triangle* tri, TriFloatXYZ *resultVector){
     TriFloatXYZ *V2 = &VectorP1P3;
 
     //calculate unitvector
-    resultVector->X = (V1->Y * V2->Z) - (V1->Z*V2->Y); //i
-    resultVector->Y = (V1->Z * V2->X) - (V1->X*V2->Z); //j
-    resultVector->Z = (V1->X * V2->Y) - (V1->Y*V2->X); //k
+    tri->normal->X = (V1->Y * V2->Z) - (V1->Z*V2->Y); //i
+    tri->normal->Y = (V1->Z * V2->X) - (V1->X*V2->Z); //j
+    tri->normal->Z = (V1->X * V2->Y) - (V1->Y*V2->X); //k
 
     //find magnitude and divide to get unit vector
-    float magnitude = resultVector->X*resultVector->X + resultVector->Y*resultVector->Y;
-    magnitude += resultVector->Z*resultVector->Z;
+    float magnitude = tri->normal->X*tri->normal->X + tri->normal->Y*tri->normal->Y;
+    magnitude += tri->normal->Z*tri->normal->Z;
     magnitude = sqrt(magnitude);
-    resultVector->X = resultVector->X/magnitude;
-    resultVector->Y = resultVector->Y/magnitude;
-    resultVector->Z = resultVector->Z/magnitude;
+    tri->normal->X = tri->normal->X /magnitude;
+    tri->normal->Y = tri->normal->Y /magnitude;
+    tri->normal->Z = tri->normal->Z /magnitude;
 }
 
 class STL_Binary{
@@ -606,7 +606,8 @@ void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]
 //defines parameters for target relative to origin
 const float ballRadius = 5.08;
 const float ballBounceRestitution = 0.5; //how bouncy the ball is
-const TriFloatXYZ targetPoint = {11.09, 15-ballRadius, -1.5};
+const float targetY = 15-ballRadius;
+const TriFloatXYZ targetPoint = {11.09f, targetY, -1.5f};
 const float maxTargetDis = 1; //max distance from target that will likely still go in the hoop
 
 const float dShooter = 1; //defines the iterating size in cm over the shooter area
@@ -637,7 +638,7 @@ const int numShootPos  = shootBoxXDiv*shootBoxYDiv*shootBoxZDiv*maxHDiv; //this 
 
 //tests a single face defined in the faceTest structure
 //designed so that it only access faceTest structure and can consequentially run in a seperate thread
-void* testFace(void* faceIn){
+void testFace(void* faceIn){
     faceTest* face = (faceTest*)faceIn;
 
     auto start = std::chrono::high_resolution_clock::now();
@@ -652,8 +653,8 @@ void* testFace(void* faceIn){
     float minAcceptableMaxHeight;
     float ballDis;
 
-    Triangle faceNormal = {&(face->P1), &(face->P2),&(face->P3)};
-    getNormal(&faceNormal, &faceNV);
+    Triangle faceNormal = {&faceNV, &(face->P1), &(face->P2), &(face->P3)};
+    getNormal(&faceNormal);
 
     //get center point of face
     bouncePoint.X = (face->P1.X + face->P2.X + face->P3.X + face->P4.X)/4; 
@@ -702,6 +703,6 @@ void* testFace(void* faceIn){
 }
 
 //finds the ball end given parameters
-bool findTrajectory(TriFloatXYZ* ballEnd, TriFloatXYZ* bouncePoint, TriFloatXYZ* ballStart, TriFloatXYZ* faceNV, float maxH){
+void findTrajectory(TriFloatXYZ* ballEnd, TriFloatXYZ* bouncePoint, TriFloatXYZ* ballStart, TriFloatXYZ* faceNV, float maxH){
     
 }
