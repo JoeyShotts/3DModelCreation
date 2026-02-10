@@ -108,16 +108,33 @@ public:
     }
 
     //calculates unit normal of face and sets parameter normal to that value
-    void getNormal(Triangle* triangle, TriFloatXYZ *normal){
-        TriFloatXYZ *VectorP1P2 = subtractTwoPoints(triangle->P1, triangle->P2); 
-        TriFloatXYZ *VectorP1P3 = subtractTwoPoints(triangle->P1, triangle->P3);
-        
-        TriFloatXYZ *newNormal = crossProductUnit(VectorP1P2, VectorP1P3);
-        copyPoint(normal, newNormal);
+    //this function is self contained as it's intended to use externally of the STL Class
+    void getNormal(Triangle* tri, TriFloatXYZ *resultVector){
+        TriFloatXYZ VectorP1P2; // = subtractTwoPoints(triangle->P1, triangle->P2);
+        VectorP1P2.X = tri->P1->X - tri->P2->X;
+        VectorP1P2.Y = tri->P1->Y - tri->P2->Y;
+        VectorP1P2.Z = tri->P1->Z - tri->P2->Z;
 
-        delete VectorP1P2;
-        delete VectorP1P3;
-        delete newNormal;
+        TriFloatXYZ VectorP1P3; // = subtractTwoPoints(triangle->P1, triangle->P3);
+        VectorP1P3.X = tri->P1->X - tri->P3->X;
+        VectorP1P3.Y = tri->P1->Y - tri->P3->Y;
+        VectorP1P3.Z = tri->P1->Z - tri->P3->Z;
+
+        TriFloatXYZ *V1 = &VectorP1P2;
+        TriFloatXYZ *V2 = &VectorP1P3;
+
+        //calculate unitvector
+        resultVector->X = (V1->Y * V2->Z) - (V1->Z*V2->Y); //i
+        resultVector->Y = (V1->Z * V2->X) - (V1->X*V2->Z); //j
+        resultVector->Z = (V1->X * V2->Y) - (V1->Y*V2->X); //k
+
+        //find magnitude and divide to get unit vector
+        float magnitude = resultVector->X*resultVector->X + resultVector->Y*resultVector->Y;
+        magnitude += resultVector->Z*resultVector->Z;
+        magnitude = sqrt(magnitude);
+        resultVector->X = resultVector->X/magnitude;
+        resultVector->Y = resultVector->Y/magnitude;
+        resultVector->Z = resultVector->Z/magnitude;
     }
 
     TriFloatXYZ *subtractTwoPoints(TriFloatXYZ *P1, TriFloatXYZ *P2){
