@@ -29,6 +29,20 @@ struct Triangle{
     TriFloatXYZ *P3;
 };
 
+struct faceTest{
+    TriFloatXYZ P1;
+    TriFloatXYZ P2;
+    TriFloatXYZ P3;
+    TriFloatXYZ P4;
+    float performance;
+};
+
+#define numDivVert (int)60 //must be even
+#define numDivHoriz (int)120 //must be even
+
+void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]);
+void testFace(void* faceIn);
+
 //for new point
 TriFloatXYZ *nP(float X, float Y, float Z){
     TriFloatXYZ *point = new TriFloatXYZ;
@@ -218,11 +232,6 @@ private:
         delete VectorP1P3;
     }
 }; //end STL_Binary Class
-
-#define numDivVert (int)60 //must be even
-#define numDivHoriz (int)120 //must be even
-
-void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]);
 
 int main(){
     std::cout << "Making a simple curved backboard.\n";
@@ -466,27 +475,8 @@ int main(){
 void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]){
     std::cout << "Optimizing Curved Front...";
 
-    // curvedFrontTris[1][1]->P1->Y += 1; //test
-
-    //shooter area: all area that a shot may occur from
-    //target: target point for a ball to hit 
     //face: a square that matches up with the number of vert and horiz divisions
     //every face has two triangles, and 4 adjustable points
-
-    //defines parameters for target relative to origin
-    TriFloatXYZ targetPoint = {11.09, 15, -1.5};
-
-    float dShooter = 1; //defines the iterating size in cm over the shooter area
-
-    //based on typical height of an individual, shooting just over the head
-    float shootHeightMin = 155; //5ft
-    float shootHeightMax = 200; //6.5 ft
-
-    float maxArcHeight = 245; //around 8ft or the typical ceiling height
-    
-    float minShootDistance = 50; //min distance from target, 1.6 ft
-    float shootBoxWidth = 200; //shooter box width
-    float shootBoxDepth = 200; //shooter box depth
 
     //random seed
     srand(static_cast<unsigned int>(time(0)));
@@ -533,10 +523,37 @@ void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]
         C3 = curFaceTri1->P3;
         C4 = curFaceTri2->P3;
 
-        // //test to see if I'm accesses all points correctly
+        // //test to see if I'm accessesing all points correctly
         // C1->Y += 0.1;
         // C2->Y += 0.1;
         // C3->Y += 0.1;
         // C4->Y += 0.1;
     }
+}
+
+
+//tests a single face defined in the faceTest structure
+//designed so that it only access faceTest structure and can consequentially run in a seperate thread
+void testFace(void* faceIn){
+    faceTest* face = (faceTest*)faceIn;
+
+    //shooter area: all area that a shot may occur from
+    //target: target point for a ball to hit 
+
+    //defines parameters for target relative to origin
+    TriFloatXYZ targetPoint = {11.09, 15, -1.5};
+
+    float dShooter = 1; //defines the iterating size in cm over the shooter area
+
+    //based on typical height of an individual, shooting just over the head
+    float shootHeightMin = 155; //5ft
+    float shootHeightMax = 200; //6.5 ft
+
+    float maxArcHeight = 245; //around 8ft or the typical ceiling height
+    
+    float minShootDistance = 50; //min distance from target, 1.6 ft
+    float shootBoxWidth = 200; //shooter box width
+    float shootBoxDepth = 200; //shooter box depth
+
+
 }
