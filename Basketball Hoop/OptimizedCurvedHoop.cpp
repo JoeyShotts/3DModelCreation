@@ -427,7 +427,7 @@ int main(){
     //Render STL
     std::cout << "Generated with " << BackBoard.numTriangles() << " faces." <<std::endl;
     std::cout << "Rendering STL.";
-    BackBoard.renderSTL("SimpleBackBoard.stl");
+    BackBoard.renderSTL("OptimizedBackBoard.stl");
     std::cout << "Program Completed Successfully.";
     return 0;
 }
