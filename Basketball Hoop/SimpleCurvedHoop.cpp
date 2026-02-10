@@ -11,10 +11,10 @@ Creating a simple curved backboard.
 #include <cmath>
 #include <cstdint>
 #include <vector>
-#include <windows.h>
 #include <unordered_map>
+#include <time.h>
 
-#define FLOAT_E (float)1e-08
+#define FLOAT_E (float)1e-09 //used for float comparison
 
 struct TriFloatXYZ{
     float X=0;
@@ -188,33 +188,18 @@ private:
     }
 }; //end STL_Binary Class
 
+#define numDivVert (int)60 //must be even
+#define numDivHoriz (int)120 //must be even
+
+void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]);
+
 int main(){
     std::cout << "Making a simple curved backboard.\n";
     
     //all units are cm for simplicity
-    //shooter area: all area that a shot may occur from
-    //target: target point for a ball to hit 
-
-    //defines parameters for target relative to origin
-    TriFloatXYZ targetPoint = {11.09, 15, -1.5};
-
-    float dShooter = 1; //defines the iterating size in cm over the shooter area
-
-    //based on typical height of an individual, shooting just over the head
-    float shootHeightMin = 155; //5ft
-    float shootHeightMax = 200; //6.5 ft
-
-    float maxArcHeight = 245; //around 8ft or the typical ceiling height
-    
-    float minShootDistance = 50; //min distance from target, 1.6 ft
-    float shootBoxWidth = 200; //shooter box width
-    float shootBoxDepth = 200; //shooter box depth
-
     //defines back square of backboard
     float backHeight = 17;
     float backWidth = 34;
-    int numDivVert = 60; //must be even
-    int numDivHoriz = 120; //must be even
     float dVert = backHeight/numDivVert;
     float dHoriz = backWidth/numDivHoriz;
     
@@ -230,6 +215,7 @@ int main(){
     TriFloatXYZ C4; //Bottom Right
 
     //create initial curved front of backboard
+    std::cout << "Create Curved Front.\n";
     float x_alpha = 0.2/backHeight; //defines parabolic shape of curve in horizontal direction
     float z_alpha = 0.2/backHeight; //defines parabolic shape of curve in vertical direction
 
@@ -288,8 +274,8 @@ int main(){
             tri2= BackBoard.addTriangle(&C1, &C3, &C4);
             
             //store all triangle faces
-            curvedFrontTris[i+halfVert][2*j+halfHoriz] = tri1;
-            curvedFrontTris[i+halfVert][2*j+halfHoriz+1] = tri2;
+            curvedFrontTris[i+halfVert][2*(j+halfHoriz)] = tri1;
+            curvedFrontTris[i+halfVert][2*(j+halfHoriz)+1] = tri2;
 
             //if bottom triangle row store tri pointer to array
             if(i == -(numDivVert/2)){
@@ -309,10 +295,14 @@ int main(){
             if(j == (numDivHoriz/2-1)){
                 curveRightTris[i+halfVert] = tri2; //adjust i to be 0-numDivHoriz
             }
+
         }
     }
 
+    optimizeBackboardCurve(curvedFrontTris);
+
     //add top face
+    std::cout << "Create Top.\n";
     C1.Z = backHeight;
     C2.Z = backHeight;
     C3.Z = backHeight;
@@ -337,6 +327,7 @@ int main(){
     }
 
     //Add Bottom Face
+    std::cout << "Create Bottom.\n";
     C1.Z = 0;
     C2.Z = 0;
     C3.Z = 0;
@@ -360,6 +351,7 @@ int main(){
     }
 
     //add left face
+    std::cout << "Create Left.\n";
     C1.X = 0;
     C2.X = 0;
     C3.X = 0;
@@ -383,6 +375,7 @@ int main(){
     }
 
     //add right face
+    std::cout << "Create Right.\n";
     C1.X = backWidth;
     C2.X = backWidth;
     C3.X = backWidth;
@@ -406,6 +399,7 @@ int main(){
     }
 
     //Add Back
+    std::cout << "Create Back.\n";
     C1.Y = 0;
     C2.Y = 0;
     C3.Y = 0;
@@ -432,10 +426,88 @@ int main(){
 
     //Render STL
     std::cout << "Generated with " << BackBoard.numTriangles() << " faces." <<std::endl;
-
+    std::cout << "Rendering STL.";
     BackBoard.renderSTL("BackBoard.stl");
-    
-    Sleep(1000); //just lets me read the output to the terminal in VS code
-
+    std::cout << "Program Completed Successfully.";
     return 0;
 }
+
+void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]){
+    std::cout << "Optimizing Curved Front...";
+
+    // curvedFrontTris[1][1]->P1->Y += 1; //test
+
+    //shooter area: all area that a shot may occur from
+    //target: target point for a ball to hit 
+    //face: a square that matches up with the number of vert and horiz divisions
+    //every face has two triangles, and 4 adjustable points
+
+    //defines parameters for target relative to origin
+    TriFloatXYZ targetPoint = {11.09, 15, -1.5};
+
+    float dShooter = 1; //defines the iterating size in cm over the shooter area
+
+    //based on typical height of an individual, shooting just over the head
+    float shootHeightMin = 155; //5ft
+    float shootHeightMax = 200; //6.5 ft
+
+    float maxArcHeight = 245; //around 8ft or the typical ceiling height
+    
+    float minShootDistance = 50; //min distance from target, 1.6 ft
+    float shootBoxWidth = 200; //shooter box width
+    float shootBoxDepth = 200; //shooter box depth
+
+    //random seed
+    srand(static_cast<unsigned int>(time(0)));
+
+    //loop through all faces
+    int numFaces = numDivHoriz*numDivVert; 
+    bool wasFaceChanged[numFaces];
+    int faceID; //integer divide by numDivHoriz to get row(0-numDivVert), modulo numDivHoriz to get column(0-numDivHoriz)
+
+    //two triangles of face
+    Triangle *curFaceTri1;
+    Triangle *curFaceTri2;
+
+    //for corners of face
+    TriFloatXYZ *C1;
+    TriFloatXYZ *C2;
+    TriFloatXYZ *C3;
+    TriFloatXYZ *C4;
+
+    int row, col;
+
+    //reset wasFaceChanged for all faces
+    for(int i=0; i<numFaces;i++){
+        wasFaceChanged[i] = false;
+    }
+    for(int i=0; i<numFaces; i++){
+        faceID = i;
+        faceID = rand() % numFaces;
+        //find a new face if a face has already been changed
+        while(wasFaceChanged[faceID]){
+            faceID++;
+            faceID %= numFaces;
+        }
+        wasFaceChanged[faceID] = true;
+        
+        //get current face
+        row= faceID/numDivHoriz;
+        col= faceID % (2*numDivHoriz);
+        curFaceTri1 = curvedFrontTris[row][col];
+        curFaceTri2 = curvedFrontTris[row][col+1];
+
+        C1 = curFaceTri1->P1;
+        C2 = curFaceTri1->P2;
+        C3 = curFaceTri1->P3;
+        C4 = curFaceTri2->P3;
+
+        // //test to see if I'm accesses all points correctly
+        // C1->Y += 0.1;
+        // C2->Y += 0.1;
+        // C3->Y += 0.1;
+        // C4->Y += 0.1;
+    }
+}
+
+//seg fault at > 7170
