@@ -35,6 +35,7 @@ struct faceTest{
     TriFloatXYZ P3;
     TriFloatXYZ P4;
     float performance;
+    bool  testCompleted;
 };
 
 #define numDivVert (int)60 //must be even
@@ -555,5 +556,7 @@ void testFace(void* faceIn){
     float shootBoxWidth = 200; //shooter box width
     float shootBoxDepth = 200; //shooter box depth
 
+    
 
+    face->testCompleted = true;
 }
