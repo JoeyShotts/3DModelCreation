@@ -6,13 +6,13 @@ Description:
 Creating a simple curved backboard.
 */
 
+#include <thread>
 #include <fstream> // Required for file stream operations
 #include <iostream>
 #include <cmath>
-#include <cstdint>
 #include <vector>
-#include <unordered_map>
-#include <time.h>
+#include <string.h>
+#include <chrono>
 
 //for STL Class
 #define FLOAT_E (float)1e-09 //used for float comparison
@@ -37,16 +37,17 @@ struct faceTest{
     TriFloatXYZ P3;
     TriFloatXYZ P4;
     float performance;
+    int64_t time;
     bool  testCompleted;
 };
 
 //critical values used to define shape backboard, essentially defines number of faces
-#define numDivVert (int)60 //must be even
-#define numDivHoriz (int)120 //must be even
+#define numDivVert (int)20 //must be even
+#define numDivHoriz (int)40 //must be even
 
 //functions used to test face
-void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]);
-void testFace(void* faceIn);
+void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2], float avgWidthHeight);
+void* testFace(void* faceIn);
 
 
 //STL Class Definitions **************************************************************
@@ -348,7 +349,8 @@ int main(){
         }
     }
 
-    optimizeBackboardCurve(curvedFrontTris);
+    float avgWidthHeight = (dVert+dHoriz)/2;
+    optimizeBackboardCurve(curvedFrontTris, avgWidthHeight);
 
     //add top face
     std::cout << "Create Top.\n";
@@ -482,7 +484,7 @@ int main(){
 }
 
 // Optimization Function *********************************************
-void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]){
+void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2], float avgWidthHeight){
     std::cout << "Optimizing Curved Front...";
 
     //face: a square that matches up with the number of vert and horiz divisions
@@ -507,6 +509,17 @@ void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]
     TriFloatXYZ *C4;
 
     int row, col;
+
+    float maxPointDeviation = (0.25)*avgWidthHeight;
+    int randAdjP1;
+    int randAdjP2;
+    int randAdjP3;
+    int randAdjP4;
+
+    int numTestsPerFace = 5;
+    faceTest faceTests[numTestsPerFace];
+    std::vector<std::thread> faceThreads;
+
 
     //reset wasFaceChanged for all faces
     for(int i=0; i<numFaces;i++){
@@ -533,11 +546,56 @@ void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]
         C3 = curFaceTri1->P3;
         C4 = curFaceTri2->P3;
 
-        // //test to see if I'm accessesing all points correctly
-        // C1->Y += 0.1;
-        // C2->Y += 0.1;
-        // C3->Y += 0.1;
-        // C4->Y += 0.1;
+        //set up tests
+        for(int j=0 ; j<numTestsPerFace; j++){
+            copyPoint(&faceTests[j].P1, C1);
+            copyPoint(&faceTests[j].P2, C2);
+            copyPoint(&faceTests[j].P3, C3);
+            copyPoint(&faceTests[j].P4, C4);
+            faceTests[j].performance = 0;
+            faceTests[j].testCompleted = false;
+        }
+
+        faceThreads.push_back(std::thread(testFace, &faceTests[0]));
+
+        //test the face under varying conditions
+        for(int j=1 ; j<numTestsPerFace; j++){
+            randAdjP1 = rand()%200 -100; //-100 - 99
+            randAdjP2 = rand()%200 -100;
+            randAdjP3 = rand()%200 -100;
+            randAdjP4 = rand()%200 -100;
+
+            //adjust each point by a random amount
+            faceTests[j].P1.Y += ((float)randAdjP1 /100.0)*maxPointDeviation;
+            faceTests[j].P2.Y += ((float)randAdjP1 /100.0)*maxPointDeviation;
+            faceTests[j].P3.Y += ((float)randAdjP1 /100.0)*maxPointDeviation;
+            faceTests[j].P4.Y += ((float)randAdjP1 /100.0)*maxPointDeviation;
+
+            faceThreads.push_back(std::thread(testFace, &faceTests[j]));
+        }
+
+        //join all threads
+        for(int j=0; j<numTestsPerFace; j++){
+            if(faceThreads[i].joinable())
+                faceThreads[i].join();
+        }
+        
+        //determine the best version
+        int bestVersion = 0; //current version
+        float bestPerformance = 0;
+        for(int j=0; j<numTestsPerFace; j++){
+            if(faceTests[j].performance > FLOAT_E){ //if it's not 0
+                if(faceTests[j].performance > bestPerformance){
+                    bestVersion = j;
+                }
+            }
+        }
+
+        //set the actual curve to be the best performing face.
+        curFaceTri1->P1->Y = faceTests[bestVersion].P1.Y + 0.01; //+0.01 is just to see that's working
+        curFaceTri1->P2->Y = faceTests[bestVersion].P2.Y + 0.01;
+        curFaceTri1->P3->Y = faceTests[bestVersion].P3.Y + 0.01;
+        curFaceTri2->P3->Y = faceTests[bestVersion].P4.Y + 0.01;
     }
 }
 
@@ -549,6 +607,7 @@ void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]
 const float ballRadius = 5.08;
 const float ballBounceRestitution = 0.5; //how bouncy the ball is
 const TriFloatXYZ targetPoint = {11.09, 15-ballRadius, -1.5};
+const float maxTargetDis = 1; //max distance from target that will likely still go in the hoop
 
 const float dShooter = 1; //defines the iterating size in cm over the shooter area
 
@@ -558,26 +617,40 @@ const float shootHeightMax = 200; //6.5 ft
 
 const float maxArcHeight = 245; //around 8ft or the typical ceiling height
 
+// minAcceptablemaxHOffset means that the parabolic arc of a target must at least 
+// have a curve that deviates by 5cm vertically. 
+// This also bounds the max speed the ball can be thrown.
+const float minAcceptablemaxHOffset = 10; 
+
 const float minShootDistance = 50; //min distance from target, 1.6 ft
-const float shootBoxWidth = 200; //shooter box width
-const float shootBoxDepth = 200; //shooter box depth
+const float shootBoxWidth = 100; //shooter box width
+const float shootBoxDepth = 100; //shooter box depth
 const float shootBoxHeight = shootHeightMin-shootHeightMax;
 const float shootBoxXStart = targetPoint.X - shootBoxWidth/2;
 
 const int shootBoxXDiv = (int)(shootBoxWidth/dShooter);
 const int shootBoxYDiv = (int)(shootBoxDepth/dShooter);
 const int shootBoxZDiv = (int)(shootBoxHeight/dShooter);
-const int numShootPos  = shootBoxXDiv*shootBoxYDiv*shootBoxZDiv;
+const int maxHDiv      = (int)((maxArcHeight-shootHeightMin)/dShooter);
+const int numShootPos  = shootBoxXDiv*shootBoxYDiv*shootBoxZDiv*maxHDiv; //this is an upper bound, not a true value
+
 
 //tests a single face defined in the faceTest structure
 //designed so that it only access faceTest structure and can consequentially run in a seperate thread
-void testFace(void* faceIn){
+void* testFace(void* faceIn){
     faceTest* face = (faceTest*)faceIn;
+
+    auto start = std::chrono::high_resolution_clock::now();
+
     int numTargetHits = 0;
     TriFloatXYZ ballEnd;
     TriFloatXYZ bouncePoint;
     TriFloatXYZ ballStart;
     TriFloatXYZ faceNV; //normal unit vector to face
+
+    float maxH=0;
+    float minAcceptableMaxHeight;
+    float ballDis;
 
     Triangle faceNormal = {&(face->P1), &(face->P2),&(face->P3)};
     getNormal(&faceNormal, &faceNV);
@@ -591,22 +664,44 @@ void testFace(void* faceIn){
     for(int i=0; i<shootBoxXDiv; i++){
         for(int j=0; j<shootBoxYDiv; j++){
             for(int k=0; k<shootBoxZDiv; k++){
+                //determine ball starting point
                 ballStart.X = i*dShooter + shootBoxXStart;
                 ballStart.Y = j*dShooter + minShootDistance;
                 ballStart.Z = k*dShooter + shootHeightMin;
 
-                findTrajectory(&ballEnd, &bouncePoint, &ballStart, &faceNV);
+                //ensures that the maxH the ball reaches still follows a parabolic arc
+                minAcceptableMaxHeight = (bouncePoint.Z-ballStart.Z)/2 + ballStart.Z + minAcceptablemaxHOffset;
 
-                //test if ballEnd is within exceptable range of target
+                for(int l=0; l<maxHDiv; l++){
+                    maxH = l*dShooter + shootHeightMin;
+                    if(maxH < minAcceptableMaxHeight){
+                        continue;
+                    }
+
+                    findTrajectory(&ballEnd, &bouncePoint, &ballStart, &faceNV, maxH);
+
+                    //test if ballEnd is within exceptable range of target
+                    ballDis = fabs(ballEnd.X-targetPoint.X) + fabs(ballEnd.Y-targetPoint.Y);
+                    ballDis = sqrt(ballDis);
+
+                    //if target was hit
+                    if(ballDis < maxTargetDis){
+                        numTargetHits++;
+                    }
+                }
             }
         }
     }
 
     face->performance = ((float)numTargetHits)/numShootPos; //percentage of successful shots
+    auto stop = std::chrono::high_resolution_clock::now();
+    
+    //calculate the duration it took
+    face->time = (int)(std::chrono::duration_cast<std::chrono::microseconds>(stop - start)).count();
     face->testCompleted = true;
 }
 
 //finds the ball end given parameters
-bool findTrajectory(TriFloatXYZ* ballEnd, TriFloatXYZ* bouncePoint, TriFloatXYZ* ballStart, TriFloatXYZ* faceNV){
-
+bool findTrajectory(TriFloatXYZ* ballEnd, TriFloatXYZ* bouncePoint, TriFloatXYZ* ballStart, TriFloatXYZ* faceNV, float maxH){
+    
 }
