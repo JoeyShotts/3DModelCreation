@@ -745,8 +745,8 @@ void testFace(void* faceIn){
     bouncePoint.Z = (face->P1.Z + face->P2.Z + face->P3.Z + face->P4.Z)/4; 
 
     //iterate through all shooting positions
-    for(int i=0; i<shootBoxXDiv; i++){
-        for(int j=0; j<shootBoxYDiv; j++){
+    for(int i=(-shootBoxXDiv/2); i<(shootBoxXDiv/2); i++){
+        for(int j=(-shootBoxYDiv/2); j<(shootBoxYDiv/2); j++){
             for(int k=0; k<shootBoxZDiv; k++){
                 //determine ball starting point
                 ballStart.X = i*dShooter + shootBoxXStart;
