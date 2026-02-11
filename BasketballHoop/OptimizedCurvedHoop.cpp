@@ -538,7 +538,7 @@ void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]
     int randAdjP4;
 
     const int numTestsPerFace = 20; 
-    const int maxActiveThreads = 4; 
+    const int maxActiveThreads = 8; 
     int numCurrentThreads=0;
     int mostRecentActiveThread;
     faceTest faceTests[numTestsPerFace];
