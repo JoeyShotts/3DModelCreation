@@ -526,6 +526,7 @@ void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]
     const int numTestsPerFace = 5; //also the number of active threads
     faceTest faceTests[numTestsPerFace];
     std::vector<std::thread> faceThreads;
+    // https://cplusplus.com/reference/thread/thread/thread/
 
     //reset wasFaceChanged for all faces
     for(int i=0; i<numFaces;i++){
@@ -581,6 +582,7 @@ void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]
         }
 
         //join all threads
+        //Source: https://stackoverflow.com/questions/38412471/c-join-a-vector-of-threads
         for(unsigned int j=0; j<numTestsPerFace; j++){
             faceThreads.at(i*numTestsPerFace+j).join();
         }
@@ -623,6 +625,7 @@ void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]
 //target: target point for a ball to hit 
 
 //defines parameters for target relative to origin
+const float g_a = 980.665; //cm/s^2
 const float ballRadius = 5.08;
 const float ballBounceRestitution = 0.5; //how bouncy the ball is
 const float targetY = 15-ballRadius;
@@ -664,6 +667,7 @@ void testFace(void* faceIn){
 
     int numTargetHits = 0;
     TriFloatXYZ ballEnd;
+    ballEnd.Z = targetPoint.Z; //always the same
     TriFloatXYZ bouncePoint;
     TriFloatXYZ ballStart;
     TriFloatXYZ faceNV; //normal unit vector to face
@@ -722,7 +726,46 @@ void testFace(void* faceIn){
     face->testCompleted = true;
 }
 
+//created externally to avoid creating a bunch of times
+TriFloatXYZ v2; //vector before bounce
+TriFloatXYZ v3; //vector after bounce
+
+float dt1; //start point to pounce point 
+float dt2; //maxh to bounce point
+float dt3; //bounce point to end point
+float bounceProduct; //=(1+e)(v2⋅vn) scalar defined to help calculate vector bounce of ball
+float dz; //height change from bounce point to ballEnd
+float maxH2;
+
 //finds the ball end given parameters
 void findTrajectory(TriFloatXYZ* ballEnd, TriFloatXYZ* bouncePoint, TriFloatXYZ* ballStart, TriFloatXYZ* faceNV, float maxH){
-    // std::this_thread::sleep_for(std::chrono::milliseconds(1)); //useful for testing
+    //solve for v2, speed vector before the bounce, first solve for dt1, time it takes to move from start point to bounce point
+    dt2 = sqrt(2*(maxH-bouncePoint->Z)/g_a);
+    dt1 = sqrt(2*(maxH-ballStart->Z)/g_a) + dt2;
+    v2.Z = (maxH-bouncePoint->Z)/dt2;
+    v2.X = (bouncePoint->X-ballStart->X)/dt1;
+    v2.Y = (bouncePoint->Y-ballStart->Y)/dt1;
+
+    //calculate the bounce vector
+    //v3=v2 - (1+e)(v2⋅vn)vn
+    bounceProduct = (v2.X*faceNV->X + v2.Y*faceNV->Y + v2.Z*faceNV->Z);
+    bounceProduct *= (1+ballBounceRestitution);
+    v3.X = v2.X - bounceProduct*faceNV->X;
+    v3.Y = v2.Y - bounceProduct*faceNV->Y;
+    v3.Z = v2.Z - bounceProduct*faceNV->Z;
+
+    //calculate the end position, two posabilities, bounces down, or bounces up
+    //bounces up (arcs up then back down)
+    if(v3.Z > FLOAT_E){ //compare to 0, float E ensures v3.Z isn't tiny
+        maxH2 = bouncePoint->Z + (v3.Z*v3.Z)/(2*g_a); 
+        dt3 = sqrt(2*(maxH2-bouncePoint->Z)/g_a) + sqrt(2*(maxH2-targetPoint.Z)/g_a);
+        ballEnd->X = v2.X*dt3 + bouncePoint->X;
+        ballEnd->Y = v2.Y*dt3 + bouncePoint->Y;
+    }//bounces down (only arcs down)
+    else{
+        dt3 = (v3.Z - sqrt(v3.Z*v3.Z - g_a*(bouncePoint->Z-targetPoint.Z))) / (-g_a);
+        ballEnd->X = v2.X*dt3 + bouncePoint->X;
+        ballEnd->Y = v2.Y*dt3 + bouncePoint->Y;
+    }   
+    
 }
