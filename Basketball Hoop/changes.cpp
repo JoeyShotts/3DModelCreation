@@ -56,7 +56,7 @@ struct faceTest{
 #define numDivHoriz (int)20 //must be even
 
 //functions used to test face
-const int numOptimizations = 1;
+const int numOptimizations = 3;
 void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2], float avgWidthHeight);
 void testFace(void* faceIn);
 void findTrajectory(TriFloatXYZ* ballEnd, TriFloatXYZ* bouncePoint, TriFloatXYZ* ballStart, TriFloatXYZ* faceNV, float maxH);
@@ -364,7 +364,9 @@ int main(){
     //In the future can run multiple times to get a reasonable level of optimization
     float avgWidthHeight = (dVert+dHoriz)/2;
     for(int i=0; i<numOptimizations; i++){
+        std::cout<< "Running Optimization Cycle "<< (i+1) << "/" << numOptimizations << "\n";
         optimizeBackboardCurve(curvedFrontTris, avgWidthHeight);
+        std::cout<< "***************************************************\n\n";
     }
 
     //add top face
@@ -538,9 +540,9 @@ void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]
     int randAdjP3;
     int randAdjP4;
 
-    const int numTestsPerFace = 5; 
-    const int maxActiveThreads = 5; 
-    int numCurrentThreads;
+    const int numTestsPerFace = 30; 
+    const int maxActiveThreads = 10; 
+    int numCurrentThreads=0;
     int mostRecentActiveThread;
     faceTest faceTests[numTestsPerFace];
     std::vector<std::thread> faceThreads;
@@ -581,9 +583,10 @@ void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]
             faceTests[j].testCompleted = false;
         }
 
+        numCurrentThreads = 1;
         //test with no changes (except points that were changed by other faces)
         faceThreads.push_back(std::thread(testFace, &faceTests[0]));
-
+    
         //test the face under varying conditions
         for(int j=1 ; j<numTestsPerFace; j++){
             randAdjP1 = rand()%200 -100; //-100 - 99
@@ -598,12 +601,14 @@ void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]
             faceTests[j].P4.Y += ((float)randAdjP1 /100.0)*maxPointDeviation;
 
             //join first created and active thread if too many threads are running
-            if(numCurrentThreads == maxActiveThreads){
+            if(numCurrentThreads >= maxActiveThreads){
                 mostRecentActiveThread = i*numTestsPerFace+(j-maxActiveThreads);
                 if(faceThreads.at(mostRecentActiveThread).joinable()){
                     faceThreads.at(mostRecentActiveThread).join(); 
                 }
+                numCurrentThreads--;
             }
+
             numCurrentThreads++;
             faceThreads.push_back(std::thread(testFace, &faceTests[j]));
         }
@@ -611,7 +616,7 @@ void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]
         //join all threads, check each thread to see if it's joinable
         //Source: https://stackoverflow.com/questions/38412471/c-join-a-vector-of-threads
         for(unsigned int j=0; j<numTestsPerFace; j++){
-            if(faceThreads.at(i*numTestsPerFace+(j-maxActiveThreads)).joinable()){
+            if(faceThreads.at(i*numTestsPerFace+j).joinable()){
                 faceThreads.at(i*numTestsPerFace+j).join();
             }
         }
@@ -670,7 +675,7 @@ const float targetY = 15-ballRadius;
 const TriFloatXYZ targetPoint = {11.09f, targetY, -1.5f};
 const float maxTargetDis = 1; //max distance from target that will likely still go in the hoop
 
-const float dShooter = 1; //defines the iterating size in cm over the shooter area
+const float dShooter = 2; //defines the iterating size in cm over the shooter area
 
 //based on typical height of an individual, shooting just over the head
 const float shootHeightMin = 155; //5ft
@@ -684,8 +689,8 @@ const float maxArcHeight = 245; //around 8ft or the typical ceiling height
 const float minAcceptablemaxHOffset = 10; 
 
 const float minShootDistance = 50; //min distance from target, 1.6 ft
-const float shootBoxWidth = 100; //shooter box width
-const float shootBoxDepth = 100; //shooter box depth
+const float shootBoxWidth = 40; //shooter box width
+const float shootBoxDepth = 40; //shooter box depth
 const float shootBoxHeight = shootHeightMax-shootHeightMin;
 const float shootBoxXStart = targetPoint.X - shootBoxWidth/2;
 
@@ -694,7 +699,6 @@ const int shootBoxYDiv = (int)(shootBoxDepth/dShooter);
 const int shootBoxZDiv = (int)(shootBoxHeight/dShooter);
 const int maxHDiv      = (int)((maxArcHeight-shootHeightMin)/dShooter);
 const int numShootPos  = shootBoxXDiv*shootBoxYDiv*shootBoxZDiv*maxHDiv; //this is an upper bound, not a true value
-
 
 //tests a single face defined in the faceTest structure
 //designed so that it only access faceTest structure and can consequentially run in a seperate thread

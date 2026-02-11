@@ -47,6 +47,7 @@ struct faceTest{
 #define numDivHoriz (int)20 //must be even
 
 //functions used to test face
+const int numOptimizations = 3;
 void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2], float avgWidthHeight);
 void testFace(void* faceIn);
 void findTrajectory(TriFloatXYZ* ballEnd, TriFloatXYZ* bouncePoint, TriFloatXYZ* ballStart, TriFloatXYZ* faceNV, float maxH);
@@ -353,7 +354,11 @@ int main(){
     //run the optimize function. 
     //In the future can run multiple times to get a reasonable level of optimization
     float avgWidthHeight = (dVert+dHoriz)/2;
-    optimizeBackboardCurve(curvedFrontTris, avgWidthHeight);
+    for(int i=0; i<numOptimizations; i++){
+        std::cout<< "Running Optimization Cycle "<< (i+1) << "/" << numOptimizations << "\n";
+        optimizeBackboardCurve(curvedFrontTris, avgWidthHeight);
+        std::cout<< "***************************************************\n\n";
+    }
 
     //add top face
     std::cout << "Create Top.\n";
@@ -488,6 +493,8 @@ int main(){
 
 
 // Optimization Function *********************************************
+// This makes small changes to each face, then runs tests to see if the face has improved.
+// Each test on a face is run in a seperate thread to improve CPU utilization.
 void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2], float avgWidthHeight){
     std::cout << "Optimizing Curved Front...\n";
 
@@ -503,6 +510,7 @@ void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]
     int faceID; //integer divide by numDivHoriz to get row(0-numDivVert), modulo numDivHoriz to get column(0-numDivHoriz)
 
     float averageTime=0;
+    long int secondsToGo = 0;
     int percentTracker=0;
 
     //two triangles of face
@@ -523,10 +531,13 @@ void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]
     int randAdjP3;
     int randAdjP4;
 
-    const int numTestsPerFace = 5; //also the number of active threads
+    const int numTestsPerFace = 30; 
+    const int maxActiveThreads = 10; 
+    int numCurrentThreads=0;
+    int mostRecentActiveThread;
     faceTest faceTests[numTestsPerFace];
     std::vector<std::thread> faceThreads;
-    // https://cplusplus.com/reference/thread/thread/thread/
+    // Source: https://cplusplus.com/reference/thread/thread/thread/
 
     //reset wasFaceChanged for all faces
     for(int i=0; i<numFaces;i++){
@@ -563,8 +574,10 @@ void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]
             faceTests[j].testCompleted = false;
         }
 
+        numCurrentThreads = 1;
+        //test with no changes (except points that were changed by other faces)
         faceThreads.push_back(std::thread(testFace, &faceTests[0]));
-
+    
         //test the face under varying conditions
         for(int j=1 ; j<numTestsPerFace; j++){
             randAdjP1 = rand()%200 -100; //-100 - 99
@@ -578,13 +591,25 @@ void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]
             faceTests[j].P3.Y += ((float)randAdjP1 /100.0)*maxPointDeviation;
             faceTests[j].P4.Y += ((float)randAdjP1 /100.0)*maxPointDeviation;
 
+            //join first created and active thread if too many threads are running
+            if(numCurrentThreads >= maxActiveThreads){
+                mostRecentActiveThread = i*numTestsPerFace+(j-maxActiveThreads);
+                if(faceThreads.at(mostRecentActiveThread).joinable()){
+                    faceThreads.at(mostRecentActiveThread).join(); 
+                }
+                numCurrentThreads--;
+            }
+
+            numCurrentThreads++;
             faceThreads.push_back(std::thread(testFace, &faceTests[j]));
         }
 
-        //join all threads
+        //join all threads, check each thread to see if it's joinable
         //Source: https://stackoverflow.com/questions/38412471/c-join-a-vector-of-threads
         for(unsigned int j=0; j<numTestsPerFace; j++){
-            faceThreads.at(i*numTestsPerFace+j).join();
+            if(faceThreads.at(i*numTestsPerFace+j).joinable()){
+                faceThreads.at(i*numTestsPerFace+j).join();
+            }
         }
         
         //determine the best version
@@ -603,24 +628,33 @@ void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]
         for(int j=0; j<numTestsPerFace; j++){
             averageTime += faceTests[j].time;
         }
+        secondsToGo = (long int)((numFaces-i)*averageTime/1e03f);
         if(i!=0){
             //print out the time if 5% has happened
             if((int)(((float)i/numFaces)*100) - percentTracker > 5){
                 percentTracker+=5;
-                std::cout << percentTracker << "% completed. " << (numFaces-i)*averageTime/1e06f << " seconds to go.\n";
+                std::cout << percentTracker << "% completed. " << "Time Left: " << (secondsToGo/60/60);
+                std::cout << " hours, " << (secondsToGo/60)%60 << "minutes, ";
+                std::cout << secondsToGo%60 << " seconds.\n";
             }
+        } //first cycle complete
+        else{
+            std::cout << "0% completed. " << "Time Left: " << (secondsToGo/60/60);
+            std::cout << " hours, " << (secondsToGo/60)%60 << "minutes, ";
+            std::cout << secondsToGo%60 << " seconds.\n";
         }
 
         //set the actual curve to be the best performing face.
-        curFaceTri1->P1->Y = faceTests[bestVersion].P1.Y + 0.01; //+0.01 is just to see that's working
-        curFaceTri1->P2->Y = faceTests[bestVersion].P2.Y + 0.01;
-        curFaceTri1->P3->Y = faceTests[bestVersion].P3.Y + 0.01;
-        curFaceTri2->P3->Y = faceTests[bestVersion].P4.Y + 0.01;
+        curFaceTri1->P1->Y = faceTests[bestVersion].P1.Y;
+        curFaceTri1->P2->Y = faceTests[bestVersion].P2.Y;
+        curFaceTri1->P3->Y = faceTests[bestVersion].P3.Y;
+        curFaceTri2->P3->Y = faceTests[bestVersion].P4.Y;
     }
     std::cout << "Optimization Complete.\n";
 }
 
 //Constants for Single Face Test*********************************************
+const int maxNumExceptions = 10; //max num exceptions that occur when finding trajectory
 //shooter area: all area that a shot may occur from
 //target: target point for a ball to hit 
 
@@ -632,7 +666,7 @@ const float targetY = 15-ballRadius;
 const TriFloatXYZ targetPoint = {11.09f, targetY, -1.5f};
 const float maxTargetDis = 1; //max distance from target that will likely still go in the hoop
 
-const float dShooter = 1; //defines the iterating size in cm over the shooter area
+const float dShooter = 2; //defines the iterating size in cm over the shooter area
 
 //based on typical height of an individual, shooting just over the head
 const float shootHeightMin = 155; //5ft
@@ -646,8 +680,8 @@ const float maxArcHeight = 245; //around 8ft or the typical ceiling height
 const float minAcceptablemaxHOffset = 10; 
 
 const float minShootDistance = 50; //min distance from target, 1.6 ft
-const float shootBoxWidth = 100; //shooter box width
-const float shootBoxDepth = 100; //shooter box depth
+const float shootBoxWidth = 40; //shooter box width
+const float shootBoxDepth = 40; //shooter box depth
 const float shootBoxHeight = shootHeightMax-shootHeightMin;
 const float shootBoxXStart = targetPoint.X - shootBoxWidth/2;
 
@@ -657,14 +691,13 @@ const int shootBoxZDiv = (int)(shootBoxHeight/dShooter);
 const int maxHDiv      = (int)((maxArcHeight-shootHeightMin)/dShooter);
 const int numShootPos  = shootBoxXDiv*shootBoxYDiv*shootBoxZDiv*maxHDiv; //this is an upper bound, not a true value
 
-
 //tests a single face defined in the faceTest structure
 //designed so that it only access faceTest structure and can consequentially run in a seperate thread
 void testFace(void* faceIn){
     faceTest* face = (faceTest*)faceIn;
 
     auto start = std::chrono::high_resolution_clock::now();
-
+    int numExceptions = 0;
     int numTargetHits = 0;
     TriFloatXYZ ballEnd;
     ballEnd.Z = targetPoint.Z; //always the same
@@ -701,9 +734,19 @@ void testFace(void* faceIn){
                     if(maxH < minAcceptableMaxHeight){
                         continue;
                     }
-
-                    findTrajectory(&ballEnd, &bouncePoint, &ballStart, &faceNV, maxH);
-
+                    //try to find a target. As this happens a lot (and math erros could happen), a simple try-except block was added.
+                    try {
+                        findTrajectory(&ballEnd, &bouncePoint, &ballStart, &faceNV, maxH);
+                    }
+                    catch(...){
+                        numExceptions++;
+                        std::cout << "Exception occured when finding trajectory. " << numExceptions << " have occured.";
+                        if(numExceptions > maxNumExceptions){
+                            std::cout << "Max Exceptions occured. Program exiting.";
+                            exit(1);
+                        }
+                        continue; //don't test against the target
+                    }
                     //test if ballEnd is within exceptable range of target
                     ballDis = fabs(ballEnd.X-targetPoint.X) + fabs(ballEnd.Y-targetPoint.Y);
                     ballDis = sqrt(ballDis);
@@ -722,10 +765,11 @@ void testFace(void* faceIn){
     auto stop = std::chrono::high_resolution_clock::now();
     
     //calculate the duration it took
-    face->time = (int)(std::chrono::duration_cast<std::chrono::microseconds>(stop - start)).count();
+    face->time = (int)(std::chrono::duration_cast<std::chrono::milliseconds>(stop - start)).count();
     face->testCompleted = true;
 }
 
+//FINDING TRAJECTORY **************************************************************************************************************
 //created externally to avoid creating a bunch of times
 TriFloatXYZ v2; //vector before bounce
 TriFloatXYZ v3; //vector after bounce
