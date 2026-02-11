@@ -569,8 +569,8 @@ void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]
         faceID = faceToRandIndex[i];
         
         //get current face
-        row= faceID/numDivHoriz;
-        col= faceID % (2*numDivHoriz);
+        row= faceID / numDivHoriz;
+        col= faceID % numDivHoriz;
         curFaceTri1 = curvedFrontTris[row][col];
         curFaceTri2 = curvedFrontTris[row][col+1];
 

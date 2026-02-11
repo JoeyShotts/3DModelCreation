@@ -11,6 +11,9 @@
 #define numDivHoriz (int) 5 //must be even
 
 int main(){
+    //random seed
+    srand(static_cast<unsigned int>(time(0)));
+    
     int numFaces = numDivHoriz*numDivVert; 
     int faceToRandIndex[numFaces];
     int faceID; //integer divide by numDivHoriz to get row(0-numDivVert), modulo numDivHoriz to get column(0-numDivHoriz)
@@ -35,8 +38,8 @@ int main(){
         
         //get current face
         row= faceID/numDivHoriz;
-        col= faceID % (2*numDivHoriz);
-        std::cout << "R: "<<row<<" C:"<<col<<"\n";
+        col= faceID % numDivHoriz;
+        std::cout<<"FaceID: "<<faceID<<" R: "<<row<<" C:"<<col<<"\n";
     }
     return 0;
 }
