@@ -500,6 +500,8 @@ int main(){
 
 
 // Optimization Function *********************************************
+// This makes small changes to each face, then runs tests to see if the face has improved.
+// Each test on a face is run in a seperate thread to improve CPU utilization.
 void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2], float avgWidthHeight){
     std::cout << "Optimizing Curved Front...\n";
 
@@ -647,10 +649,10 @@ void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]
         }
 
         //set the actual curve to be the best performing face.
-        curFaceTri1->P1->Y = faceTests[bestVersion].P1.Y + 0.01; //+0.01 is just to see that's working
-        curFaceTri1->P2->Y = faceTests[bestVersion].P2.Y + 0.01;
-        curFaceTri1->P3->Y = faceTests[bestVersion].P3.Y + 0.01;
-        curFaceTri2->P3->Y = faceTests[bestVersion].P4.Y + 0.01;
+        curFaceTri1->P1->Y = faceTests[bestVersion].P1.Y;
+        curFaceTri1->P2->Y = faceTests[bestVersion].P2.Y;
+        curFaceTri1->P3->Y = faceTests[bestVersion].P3.Y;
+        curFaceTri2->P3->Y = faceTests[bestVersion].P4.Y;
     }
     std::cout << "Optimization Complete.\n";
 }
@@ -772,6 +774,7 @@ void testFace(void* faceIn){
     face->testCompleted = true;
 }
 
+//FINDING TRAJECTORY **************************************************************************************************************
 //created externally to avoid creating a bunch of times
 TriFloatXYZ v2; //vector before bounce
 TriFloatXYZ v3; //vector after bounce
