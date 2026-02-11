@@ -14,6 +14,7 @@ Creating a simple curved backboard.
 #include <string.h>
 #include <chrono>
 
+
 //for STL Class
 #define FLOAT_E (float)1e-09 //used for float comparison
 
@@ -42,8 +43,8 @@ struct faceTest{
 };
 
 //critical values used to define shape backboard, essentially defines number of faces
-#define numDivVert (int)20 //must be even
-#define numDivHoriz (int)40 //must be even
+#define numDivVert (int)10 //must be even
+#define numDivHoriz (int)20 //must be even
 
 //functions used to test face
 void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2], float avgWidthHeight);
@@ -349,6 +350,8 @@ int main(){
         }
     }
 
+    //run the optimize function. 
+    //In the future can run multiple times to get a reasonable level of optimization
     float avgWidthHeight = (dVert+dHoriz)/2;
     optimizeBackboardCurve(curvedFrontTris, avgWidthHeight);
 
@@ -483,9 +486,10 @@ int main(){
     return 0;
 }
 
+
 // Optimization Function *********************************************
 void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2], float avgWidthHeight){
-    std::cout << "Optimizing Curved Front...";
+    std::cout << "Optimizing Curved Front...\n";
 
     //face: a square that matches up with the number of vert and horiz divisions
     //every face has two triangles, and 4 adjustable points
@@ -497,6 +501,9 @@ void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]
     int numFaces = numDivHoriz*numDivVert; 
     bool wasFaceChanged[numFaces];
     int faceID; //integer divide by numDivHoriz to get row(0-numDivVert), modulo numDivHoriz to get column(0-numDivHoriz)
+
+    float averageTime=0;
+    int percentTracker=0;
 
     //two triangles of face
     Triangle *curFaceTri1;
@@ -516,10 +523,9 @@ void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]
     int randAdjP3;
     int randAdjP4;
 
-    int numTestsPerFace = 5;
+    const int numTestsPerFace = 5; //also the number of active threads
     faceTest faceTests[numTestsPerFace];
     std::vector<std::thread> faceThreads;
-
 
     //reset wasFaceChanged for all faces
     for(int i=0; i<numFaces;i++){
@@ -575,9 +581,8 @@ void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]
         }
 
         //join all threads
-        for(int j=0; j<numTestsPerFace; j++){
-            if(faceThreads[i].joinable())
-                faceThreads[i].join();
+        for(unsigned int j=0; j<numTestsPerFace; j++){
+            faceThreads.at(i*numTestsPerFace+j).join();
         }
         
         //determine the best version
@@ -591,12 +596,26 @@ void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]
             }
         }
 
+        //get average time
+        averageTime=0;
+        for(int j=0; j<numTestsPerFace; j++){
+            averageTime += faceTests[j].time;
+        }
+        if(i!=0){
+            //print out the time if 5% has happened
+            if((int)(((float)i/numFaces)*100) - percentTracker > 5){
+                percentTracker+=5;
+                std::cout << percentTracker << "% completed. " << (numFaces-i)*averageTime/1e06f << " seconds to go.\n";
+            }
+        }
+
         //set the actual curve to be the best performing face.
         curFaceTri1->P1->Y = faceTests[bestVersion].P1.Y + 0.01; //+0.01 is just to see that's working
         curFaceTri1->P2->Y = faceTests[bestVersion].P2.Y + 0.01;
         curFaceTri1->P3->Y = faceTests[bestVersion].P3.Y + 0.01;
         curFaceTri2->P3->Y = faceTests[bestVersion].P4.Y + 0.01;
     }
+    std::cout << "Optimization Complete.\n";
 }
 
 //Constants for Single Face Test*********************************************
@@ -626,7 +645,7 @@ const float minAcceptablemaxHOffset = 10;
 const float minShootDistance = 50; //min distance from target, 1.6 ft
 const float shootBoxWidth = 100; //shooter box width
 const float shootBoxDepth = 100; //shooter box depth
-const float shootBoxHeight = shootHeightMin-shootHeightMax;
+const float shootBoxHeight = shootHeightMax-shootHeightMin;
 const float shootBoxXStart = targetPoint.X - shootBoxWidth/2;
 
 const int shootBoxXDiv = (int)(shootBoxWidth/dShooter);
@@ -695,6 +714,7 @@ void testFace(void* faceIn){
     }
 
     face->performance = ((float)numTargetHits)/numShootPos; //percentage of successful shots
+
     auto stop = std::chrono::high_resolution_clock::now();
     
     //calculate the duration it took
@@ -704,5 +724,5 @@ void testFace(void* faceIn){
 
 //finds the ball end given parameters
 void findTrajectory(TriFloatXYZ* ballEnd, TriFloatXYZ* bouncePoint, TriFloatXYZ* ballStart, TriFloatXYZ* faceNV, float maxH){
-    
+    // std::this_thread::sleep_for(std::chrono::milliseconds(1)); //useful for testing
 }
