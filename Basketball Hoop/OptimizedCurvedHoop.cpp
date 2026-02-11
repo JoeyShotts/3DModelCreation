@@ -11,6 +11,8 @@ Creating a simple curved backboard.
 // The problem cause could be the trajectory function, the faceTest function, the small test size,
 // the ML algorithm doesn't work, or some other unknown problem.
 
+// Also could update time estimate to be some kind of running average to get more acurate estimation
+
 //Fix:
 // Investigate the FaceTest and look for something obvious (why is it only on half?)
 // Try testing at a larger sample size.
@@ -18,7 +20,7 @@ Creating a simple curved backboard.
 // Then do some more research into ML algroithims.
 
 #include <thread>
-#include <fstream> // Required for file stream operations
+#include <fstream> 
 #include <iostream>
 #include <cmath>
 #include <vector>
@@ -54,8 +56,8 @@ struct faceTest{
 };
 
 //critical values used to define shape backboard, essentially defines number of faces
-#define numDivVert (int)20 //must be even
-#define numDivHoriz (int)40 //must be even
+#define numDivVert (int)10 //must be even
+#define numDivHoriz (int)20 //must be even
 
 //functions used to test face
 const int numOptimizations = 10;
@@ -515,11 +517,6 @@ void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]
     //random seed
     srand(static_cast<unsigned int>(time(0)));
 
-    //loop through all faces
-    int numFaces = numDivHoriz*numDivVert; 
-    bool wasFaceChanged[numFaces];
-    int faceID; //integer divide by numDivHoriz to get row(0-numDivVert), modulo numDivHoriz to get column(0-numDivHoriz)
-
     float averageTime=0;
     long int secondsToGo = 0;
     int percentTracker=0;
@@ -534,35 +531,42 @@ void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]
     TriFloatXYZ *C3;
     TriFloatXYZ *C4;
 
-    int row, col;
-
-    float maxPointDeviation = (0.1)*avgWidthHeight;
+    float maxPointDeviation = (0.25)*avgWidthHeight;
     int randAdjP1;
     int randAdjP2;
     int randAdjP3;
     int randAdjP4;
 
     const int numTestsPerFace = 20; 
-    const int maxActiveThreads = 10; 
+    const int maxActiveThreads = 20; 
     int numCurrentThreads=0;
     int mostRecentActiveThread;
     faceTest faceTests[numTestsPerFace];
     std::vector<std::thread> faceThreads;
     // Source: https://cplusplus.com/reference/thread/thread/thread/
 
-    //reset wasFaceChanged for all faces
+        //loop through all faces
+    int numFaces = numDivHoriz*numDivVert; 
+    int faceToRandIndex[numFaces];
+    int faceID; //integer divide by numDivHoriz to get row(0-numDivVert), modulo numDivHoriz to get column(0-numDivHoriz)
+
+    //get a list of all values needed
     for(int i=0; i<numFaces;i++){
-        wasFaceChanged[i] = false;
+        faceToRandIndex[i] = i;
     }
+
+    int row, col, randIndex, saveVal;
+
+    //shuffle list of all faces
+    for(int i=0; i<numFaces;i++){
+        randIndex = rand()%numFaces;
+        saveVal = faceToRandIndex[randIndex];
+        faceToRandIndex[randIndex] = faceToRandIndex[i];
+        faceToRandIndex[i] = saveVal;
+    }
+
     for(int i=0; i<numFaces; i++){
-        faceID = i;
-        faceID = rand() % numFaces;
-        //find a new face if a face has already been changed
-        while(wasFaceChanged[faceID]){
-            faceID++;
-            faceID %= numFaces;
-        }
-        wasFaceChanged[faceID] = true;
+        faceID = faceToRandIndex[i];
         
         //get current face
         row= faceID/numDivHoriz;
@@ -588,19 +592,28 @@ void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]
         numCurrentThreads = 1;
         //test with no changes (except points that were changed by other faces)
         faceThreads.push_back(std::thread(testFace, &faceTests[0]));
-    
+        
+        int randFace;
         //test the face under varying conditions
         for(int j=1 ; j<numTestsPerFace; j++){
-            randAdjP1 = rand()%200 -100; //-100 - 99
-            randAdjP2 = rand()%200 -100;
-            randAdjP3 = rand()%200 -100;
-            randAdjP4 = rand()%200 -100;
-
-            //adjust each point by a random amount
-            faceTests[j].P1.Y += ((float)randAdjP1 /100.0)*maxPointDeviation;
-            faceTests[j].P2.Y += ((float)randAdjP1 /100.0)*maxPointDeviation;
-            faceTests[j].P3.Y += ((float)randAdjP1 /100.0)*maxPointDeviation;
-            faceTests[j].P4.Y += ((float)randAdjP1 /100.0)*maxPointDeviation;
+            //randomly select a corner, then randomly adjust that corner (different random adjustment for each test)
+            randFace = rand()%4;
+            if(randFace == 0){
+                randAdjP1 = rand()%200 -100; //-100 - 99
+                faceTests[j].P1.Y += ((float)randAdjP1 /100.0)*maxPointDeviation;
+            }
+            else if(randFace==1){
+                randAdjP2 = rand()%200 -100;
+                faceTests[j].P2.Y += ((float)randAdjP2 /100.0)*maxPointDeviation;
+            }
+            else if(randFace==2){
+                randAdjP3 = rand()%200 -100;
+                faceTests[j].P3.Y += ((float)randAdjP3 /100.0)*maxPointDeviation;
+            }
+            else if(randFace==3){
+                randAdjP4 = rand()%200 -100;
+                faceTests[j].P4.Y += ((float)randAdjP4 /100.0)*maxPointDeviation;
+            }
 
             //join first created and active thread if too many threads are running
             if(numCurrentThreads >= maxActiveThreads){
@@ -653,7 +666,7 @@ void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]
         } //first cycle complete print time prediction
         else{
             std::cout << "0% completed. " << "Time Left: " << (secondsToGo/60/60);
-            std::cout << " hours, " << (secondsToGo/60)%60 << "minutes, ";
+            std::cout << " hours, " << (secondsToGo/60)%60 << " minutes, ";
             std::cout << secondsToGo%60 << " seconds.\n";
         }
 
@@ -675,8 +688,8 @@ const int maxNumExceptions = 10; //max num exceptions that occur when finding tr
 const float g_a = 980.665; //cm/s^2
 const float ballRadius = 5.08;
 const float ballBounceRestitution = 0.5; //how bouncy the ball is
-const float targetX = 11.09-ballRadius;
-const TriFloatXYZ targetPoint = {targetX, 15.0f, -1.5f};
+const float targetY = 15-ballRadius;
+const TriFloatXYZ targetPoint = {11.5f, targetY, -1.5f};
 const float maxTargetDis = 1; //max distance from target that will likely still go in the hoop
 const float maxTargetDisSquared = maxTargetDis*maxTargetDis;
 
