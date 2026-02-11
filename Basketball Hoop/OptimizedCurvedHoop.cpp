@@ -7,7 +7,16 @@ Creating a simple curved backboard.
 */
 
 //Problems:
-// the time estimate is way off, it's too big by a factor of like 3
+// The output seems only to be on one side, and seems to be random. 
+// The problem cause could be the trajectory function, the faceTest function, the small test size,
+// the ML algorithm doesn't work, or some other unknown problem.
+
+//Fix:
+// Investigate the FaceTest and look for something obvious (why is it only on half?)
+// Try testing at a larger sample size.
+// Write some tests for the trajectory function.
+// Then do some more research into ML algroithims.
+
 #include <thread>
 #include <fstream> // Required for file stream operations
 #include <iostream>
@@ -45,8 +54,8 @@ struct faceTest{
 };
 
 //critical values used to define shape backboard, essentially defines number of faces
-#define numDivVert (int)10 //must be even
-#define numDivHoriz (int)20 //must be even
+#define numDivVert (int)20 //must be even
+#define numDivHoriz (int)40 //must be even
 
 //functions used to test face
 const int numOptimizations = 10;
@@ -527,13 +536,13 @@ void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]
 
     int row, col;
 
-    float maxPointDeviation = (0.25)*avgWidthHeight;
+    float maxPointDeviation = (0.1)*avgWidthHeight;
     int randAdjP1;
     int randAdjP2;
     int randAdjP3;
     int randAdjP4;
 
-    const int numTestsPerFace = 30; 
+    const int numTestsPerFace = 20; 
     const int maxActiveThreads = 10; 
     int numCurrentThreads=0;
     int mostRecentActiveThread;
@@ -625,6 +634,7 @@ void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]
             }
         }
 
+        //output program expected time
         //get average time
         averageTime=0;
         for(int j=0; j<numTestsPerFace; j++){
@@ -640,7 +650,7 @@ void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]
                 std::cout << " hours, " << (secondsToGo/60)%60 << "minutes, ";
                 std::cout << secondsToGo%60 << " seconds.\n";
             }
-        } //first cycle complete
+        } //first cycle complete print time prediction
         else{
             std::cout << "0% completed. " << "Time Left: " << (secondsToGo/60/60);
             std::cout << " hours, " << (secondsToGo/60)%60 << "minutes, ";
@@ -665,9 +675,10 @@ const int maxNumExceptions = 10; //max num exceptions that occur when finding tr
 const float g_a = 980.665; //cm/s^2
 const float ballRadius = 5.08;
 const float ballBounceRestitution = 0.5; //how bouncy the ball is
-const float targetY = 15-ballRadius;
-const TriFloatXYZ targetPoint = {11.09f, targetY, -1.5f};
+const float targetX = 11.09-ballRadius;
+const TriFloatXYZ targetPoint = {targetX, 15.0f, -1.5f};
 const float maxTargetDis = 1; //max distance from target that will likely still go in the hoop
+const float maxTargetDisSquared = maxTargetDis*maxTargetDis;
 
 const float dShooter = 2; //defines the iterating size in cm over the shooter area
 
@@ -752,10 +763,9 @@ void testFace(void* faceIn){
                     }
                     //test if ballEnd is within exceptable range of target
                     ballDis = fabs(ballEnd.X-targetPoint.X) + fabs(ballEnd.Y-targetPoint.Y);
-                    ballDis = sqrt(ballDis);
 
                     //if target was hit
-                    if(ballDis < maxTargetDis){
+                    if(ballDis < maxTargetDisSquared){
                         numTargetHits++;
                     }
                 }
