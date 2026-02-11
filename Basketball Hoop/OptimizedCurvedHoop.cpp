@@ -6,6 +6,8 @@ Description:
 Creating a simple curved backboard.
 */
 
+//Problems:
+// the time estimate is way off, it's too big by a factor of like 3
 #include <thread>
 #include <fstream> // Required for file stream operations
 #include <iostream>
@@ -47,7 +49,7 @@ struct faceTest{
 #define numDivHoriz (int)20 //must be even
 
 //functions used to test face
-const int numOptimizations = 3;
+const int numOptimizations = 10;
 void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2], float avgWidthHeight);
 void testFace(void* faceIn);
 void findTrajectory(TriFloatXYZ* ballEnd, TriFloatXYZ* bouncePoint, TriFloatXYZ* ballStart, TriFloatXYZ* faceNV, float maxH);
@@ -246,7 +248,7 @@ private:
 // MAIN *********************************************
 //Creates basic curve, optimizes curve, creates top, bottom, sides, and back.
 int main(){
-    std::cout << "Making a simple curved backboard.\n";
+    std::cout << "Making an optimized curved backboard.\n";
     
     //all units are cm for simplicity
     //defines back square of backboard
@@ -628,6 +630,7 @@ void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]
         for(int j=0; j<numTestsPerFace; j++){
             averageTime += faceTests[j].time;
         }
+        averageTime /= numTestsPerFace;
         secondsToGo = (long int)((numFaces-i)*averageTime/1e03f);
         if(i!=0){
             //print out the time if 5% has happened

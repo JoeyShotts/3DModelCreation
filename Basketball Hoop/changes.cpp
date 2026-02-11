@@ -6,15 +6,8 @@ Description:
 Creating a simple curved backboard.
 */
 
-//Changes: 
-//Done while running the previous version.
-//Updated the time functionality to display hours, minutes, seconds
-//Updated the time functionality to display at 0%
-//updated the time functionality to be based on milliseconds
-//made number of active threads independent of number of tests on a face
-//added num optimizations
-//try-except block was added in case errors occur while trying to find trajectory
-
+//Problems:
+// the time estimate is way off, it's too big by a factor of like 3
 #include <thread>
 #include <fstream> // Required for file stream operations
 #include <iostream>
@@ -255,7 +248,7 @@ private:
 // MAIN *********************************************
 //Creates basic curve, optimizes curve, creates top, bottom, sides, and back.
 int main(){
-    std::cout << "Making a simple curved backboard.\n";
+    std::cout << "Making an optimized curved backboard.\n";
     
     //all units are cm for simplicity
     //defines back square of backboard
@@ -637,6 +630,7 @@ void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]
         for(int j=0; j<numTestsPerFace; j++){
             averageTime += faceTests[j].time;
         }
+        averageTime /= numTestsPerFace;
         secondsToGo = (long int)((numFaces-i)*averageTime/1e03f);
         if(i!=0){
             //print out the time if 5% has happened
