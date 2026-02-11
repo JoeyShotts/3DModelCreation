@@ -11,7 +11,8 @@ Creating a simple curved backboard.
 // The problem cause could be the trajectory function, the faceTest function, the small test size,
 // the ML algorithm doesn't work, or some other unknown problem.
 
-// Also could update time estimate to be some kind of running average to get more acurate estimation
+// Also could update time estimate to be some kind of running average to get more acurate estimation.
+// Also time estimate still isn't acurate, I think because when threads need to be run multiple times, thread average isn't accurate.
 
 //Fix:
 // Investigate the FaceTest and look for something obvious (why is it only on half?)
@@ -56,8 +57,8 @@ struct faceTest{
 };
 
 //critical values used to define shape backboard, essentially defines number of faces
-#define numDivVert (int)10 //must be even
-#define numDivHoriz (int)20 //must be even
+#define numDivVert (int)20 //must be even
+#define numDivHoriz (int)40 //must be even
 
 //functions used to test face
 const int numOptimizations = 10;
@@ -337,6 +338,11 @@ int main(){
             //add square to curve as two triangles
             tri1= BackBoard.addTriangle(&C1, &C2, &C3);
             tri2= BackBoard.addTriangle(&C1, &C3, &C4);
+
+            // useful to find individual faces when testing
+            // if(i==0 && j==0){
+            //     std::cout<<"Specific Face.";
+            // }
             
             //store all triangle faces
             curvedFrontTris[i+halfVert][2*(j+halfHoriz)] = tri1;
@@ -538,7 +544,7 @@ void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]
     int randAdjP4;
 
     const int numTestsPerFace = 20; 
-    const int maxActiveThreads = 8; 
+    const int maxActiveThreads = 10; 
     int numCurrentThreads=0;
     int mostRecentActiveThread;
     faceTest faceTests[numTestsPerFace];
@@ -693,7 +699,7 @@ const TriFloatXYZ targetPoint = {11.5f, targetY, -1.5f};
 const float maxTargetDis = 1; //max distance from target that will likely still go in the hoop
 const float maxTargetDisSquared = maxTargetDis*maxTargetDis;
 
-const float dShooter = 2; //defines the iterating size in cm over the shooter area
+const float dShooter = 0.5; //defines the iterating size in cm over the shooter area
 
 //based on typical height of an individual, shooting just over the head
 const float shootHeightMin = 155; //5ft
@@ -707,8 +713,8 @@ const float maxArcHeight = 245; //around 8ft or the typical ceiling height
 const float minAcceptablemaxHOffset = 10; 
 
 const float minShootDistance = 50; //min distance from target, 1.6 ft
-const float shootBoxWidth = 40; //shooter box width
-const float shootBoxDepth = 40; //shooter box depth
+const float shootBoxWidth = 200; //shooter box width
+const float shootBoxDepth = 200; //shooter box depth
 const float shootBoxHeight = shootHeightMax-shootHeightMin;
 const float shootBoxXStart = targetPoint.X - shootBoxWidth/2;
 
