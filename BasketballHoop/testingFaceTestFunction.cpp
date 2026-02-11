@@ -131,7 +131,7 @@ const int shootBoxXDiv = (int)(shootBoxWidth/dShooter);
 const int shootBoxYDiv = (int)(shootBoxDepth/dShooter);
 const int shootBoxZDiv = (int)(shootBoxHeight/dShooter);
 const int maxHDiv      = (int)((maxArcHeight-shootHeightMin)/dShooter);
-const long int numShootPos  = shootBoxXDiv*shootBoxYDiv*shootBoxZDiv*maxHDiv; //this is an upper bound, not a true value
+const double numShootPos  = shootBoxXDiv*shootBoxYDiv*shootBoxZDiv*maxHDiv; //this is an upper bound, not a true value
 
 //tests a single face defined in the faceTest structure
 //designed so that it only access faceTest structure and can consequentially run in a seperate thread
