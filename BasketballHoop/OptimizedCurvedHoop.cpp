@@ -696,7 +696,7 @@ const float ballRadius = 5.08;
 const float ballBounceRestitution = 0.5; //how bouncy the ball is
 const float targetY = 15-ballRadius;
 const TriFloatXYZ targetPoint = {11.5f, targetY, -1.5f};
-const float maxTargetDis = 1; //max distance from target that will likely still go in the hoop
+const float maxTargetDis = 3; //max distance from target that will likely still go in the hoop
 const float maxTargetDisSquared = maxTargetDis*maxTargetDis;
 
 const float dShooter = 0.5; //defines the iterating size in cm over the shooter area
@@ -722,7 +722,7 @@ const int shootBoxXDiv = (int)(shootBoxWidth/dShooter);
 const int shootBoxYDiv = (int)(shootBoxDepth/dShooter);
 const int shootBoxZDiv = (int)(shootBoxHeight/dShooter);
 const int maxHDiv      = (int)((maxArcHeight-shootHeightMin)/dShooter);
-const double numShootPos  = shootBoxXDiv*shootBoxYDiv*shootBoxZDiv*maxHDiv; //this is an upper bound, not a true value
+const double numShootPos  = (double)shootBoxXDiv*(double)shootBoxYDiv*(double)shootBoxZDiv*(double)maxHDiv; //this is an upper bound, not a true value
 
 //tests a single face defined in the faceTest structure
 //designed so that it only access faceTest structure and can consequentially run in a seperate thread
