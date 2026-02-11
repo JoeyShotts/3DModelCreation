@@ -57,8 +57,8 @@ struct faceTest{
 };
 
 //critical values used to define shape backboard, essentially defines number of faces
-#define numDivVert (int)20 //must be even
-#define numDivHoriz (int)40 //must be even
+#define numDivVert (int)10 //must be even
+#define numDivHoriz (int)20 //must be even
 
 //functions used to test face
 const int numOptimizations = 10;
@@ -699,7 +699,7 @@ const TriFloatXYZ targetPoint = {11.5f, targetY, -1.5f};
 const float maxTargetDis = 3; //max distance from target that will likely still go in the hoop
 const float maxTargetDisSquared = maxTargetDis*maxTargetDis;
 
-const float dShooter = 0.5; //defines the iterating size in cm over the shooter area
+const float dShooter = 1; //defines the iterating size in cm over the shooter area
 
 //based on typical height of an individual, shooting just over the head
 const float shootHeightMin = 155; //5ft
