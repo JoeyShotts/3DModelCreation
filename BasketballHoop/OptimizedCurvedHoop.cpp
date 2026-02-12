@@ -201,6 +201,22 @@ public:
         return resultVector;
     }
 
+    ~STL_Binary(){
+        //since memory is dynamically allocated, it must be dynamically deleted.
+        std::cout << "Deleting STL Memory...";
+        int size = vertices.size();
+        for(int i=0; i<size; i++){
+            delete vertices[i];
+        }
+        vertices.clear();
+
+        size = faces.size();
+        for(int i=0; i<size; i++){
+            delete faces[i];
+        }
+        faces.clear();
+    }
+
 private:
     std::ofstream stl_stream_; //binary stream to stl file
     std::vector<Triangle*> faces = {};
@@ -510,7 +526,7 @@ int main(){
     std::cout << "Rendering STL.\n";
     BackBoard.renderSTL("OptimizedBackBoard.stl");
 
-    std::cout << "Program Completed Successfully.";
+    std::cout << "Program Completed Successfully.\n";
     return 0;
 }
 
