@@ -67,7 +67,6 @@ void testFace(void* faceIn);
 void findTrajectory(TriFloatXYZ* ballEnd, TriFloatXYZ* bouncePoint, TriFloatXYZ* ballStart, TriFloatXYZ* faceNV, float maxH);
 void printTime(long int seconds); //simply outputs the time in hours, minutes, and seconds to the terminal
 
-
 //STL Class Definitions **************************************************************
 //for new point
 // TriFloatXYZ *nP(float X, float Y, float Z){
@@ -732,16 +731,14 @@ void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]
 }
 
 //Constants for Single Face Test*********************************************
+const float ballRadius = 5.08;
+const float targetY = 15-ballRadius;
+const TriFloatXYZ targetPoint = {11.5f, targetY, -1.5f};
+
 const int maxNumExceptions = 10; //max num exceptions that occur when finding trajectory
 //shooter area: all area that a shot may occur from
 //target: target point for a ball to hit 
 
-//defines parameters for target relative to origin
-const float g_a = 980.665; //cm/s^2
-const float ballRadius = 5.08;
-const float ballBounceRestitution = 0.5; //how bouncy the ball is
-const float targetY = 15-ballRadius;
-const TriFloatXYZ targetPoint = {11.5f, targetY, -1.5f};
 const float maxTargetDis = 4; //max distance from target that will likely still go in the hoop
 const float maxTargetDisSquared = maxTargetDis*maxTargetDis;
 
@@ -851,6 +848,10 @@ void testFace(void* faceIn){
 //created externally to avoid creating a bunch of times
 TriFloatXYZ v2; //vector before bounce
 TriFloatXYZ v3; //vector after bounce
+
+//defines parameters for target relative to origin
+const float g_a = 980.665; //cm/s^2
+const float ballBounceRestitution = 0.5; //how bouncy the ball is
 
 float dt1; //start point to pounce point 
 float dt2; //maxh to bounce point
