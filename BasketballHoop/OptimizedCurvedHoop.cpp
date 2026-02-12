@@ -11,10 +11,6 @@ Creating a simple curved backboard.
 // The problem cause could be the trajectory function, the faceTest function, the small test size,
 // the ML algorithm doesn't work, or some other unknown problem.
 
-// Also could update time estimate to be some kind of running average to get more acurate estimation.
-// Also time estimate still isn't acurate, I think because when threads need to be run multiple times, thread average isn't accurate.
-// Could try to move some of the functions across a couple files.
-// Also there should be some kind of clean up function for the STL class.
 // Could try to utilize a gpu for faster calculations.
 
 //Fix:
@@ -64,10 +60,14 @@ struct faceTest{
 #define numDivHoriz (int)20 //must be even
 
 //functions used to test face
-const int numOptimizations = 0;
+const int numOptimizations = 2;
+const int numTestsPerFace = 20; 
+
 void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2], float avgWidthHeight);
 void testFace(void* faceIn);
 void findTrajectory(TriFloatXYZ* ballEnd, TriFloatXYZ* bouncePoint, TriFloatXYZ* ballStart, TriFloatXYZ* faceNV, float maxH);
+void printTime(long int seconds); //simply outputs the time in hours, minutes, and seconds to the terminal
+
 
 //STL Class Definitions **************************************************************
 //for new point
@@ -392,11 +392,32 @@ int main(){
     //run the optimize function. 
     //In the future can run multiple times to get a reasonable level of optimization
     float avgWidthHeight = (dVert+dHoriz)/2;
+    long int time;
+    long int timeLeft;
+    auto startTotal = std::chrono::high_resolution_clock::now(); //get start time
     for(int i=0; i<numOptimizations; i++){
+        auto start = std::chrono::high_resolution_clock::now(); //get start time
         std::cout<< "Running Optimization Cycle "<< (i+1) << "/" << numOptimizations << "\n";
-        optimizeBackboardCurve(curvedFrontTris, avgWidthHeight);
+        optimizeBackboardCurve(curvedFrontTris, avgWidthHeight); //run the cycle
+        auto stop = std::chrono::high_resolution_clock::now(); //get end time
+        time = (int)(std::chrono::duration_cast<std::chrono::seconds>(stop - start)).count();
+        // print expected cycle time
+        std::cout << "Cycle Took: ";
+        printTime(time);
+        // if not last cycle print expected time
+        if(i != (numOptimizations-1)){
+            timeLeft = time*(numOptimizations-1-i);
+            std::cout << "\nExpected Remaining Time: ";
+            printTime(timeLeft);
+        }
+        std::cout << "\n";
         std::cout<< "***************************************************\n\n";
     }
+    auto stopTotal = std::chrono::high_resolution_clock::now(); //get end time
+    time = (int)(std::chrono::duration_cast<std::chrono::seconds>(stopTotal - startTotal)).count();
+    std::cout<<"Optimizations took: ";
+    printTime(time);
+    std::cout << "\n";
 
     //add top face
     std::cout << "Create Top.\n";
@@ -563,8 +584,15 @@ void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]
     int randAdjP3;
     int randAdjP4;
 
-    const int numTestsPerFace = 20; 
-    const int maxActiveThreads = 20; 
+    //more threads than this are possible, but we want true concurrency
+    int maxActiveThreads = std::thread::hardware_concurrency(); 
+    if(maxActiveThreads < 0){
+        maxActiveThreads = 1;
+    }
+    std::cout << "Max Active Threads: " << maxActiveThreads<<"\n";
+    //used to predict time an optimization will take
+    const int concurrencyFactor = (int)(numTestsPerFace/maxActiveThreads);
+
     int numCurrentThreads=0;
     int mostRecentActiveThread;
     faceTest faceTests[numTestsPerFace];
@@ -680,7 +708,7 @@ void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]
             averageTime += faceTests[j].time;
         }
         averageTime /= numTestsPerFace;
-        secondsToGo = (long int)((numFaces-i)*averageTime/1e03f);
+        secondsToGo = (long int)((numFaces-i)*averageTime/1e03f)*concurrencyFactor;
         if(i!=0){
             //print out the time if 5% has happened
             if((int)(((float)i/numFaces)*100) - percentTracker > 5){
@@ -691,9 +719,9 @@ void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]
             }
         } //first cycle complete print time prediction
         else{
-            std::cout << "0% completed. " << "Time Left: " << (secondsToGo/60/60);
-            std::cout << " hours, " << (secondsToGo/60)%60 << " minutes, ";
-            std::cout << secondsToGo%60 << " seconds.\n";
+            std::cout << "0% completed. " << "Time Left: ";
+            printTime(secondsToGo);
+            std::cout << "\n";
         }
 
         //set the actual curve to be the best performing face.
@@ -864,4 +892,10 @@ void findTrajectory(TriFloatXYZ* ballEnd, TriFloatXYZ* bouncePoint, TriFloatXYZ*
         ballEnd->Y = v2.Y*dt3 + bouncePoint->Y;
     }   
     
+}
+
+//prints time to terminal
+void printTime(long int seconds){
+    std::cout << (seconds/60/60) << " hours, " << (seconds/60)%60 << " minutes, ";
+    std::cout << seconds%60 << " seconds.";
 }
