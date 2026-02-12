@@ -56,11 +56,11 @@ struct faceTest{
 };
 
 //critical values used to define shape backboard, essentially defines number of faces
-#define numDivVert (int)10 //must be even
-#define numDivHoriz (int)20 //must be even
+#define numDivVert (int)20 //must be even
+#define numDivHoriz (int)40 //must be even
 
 //functions used to test face
-const int numOptimizations = 2;
+const int numOptimizations = 20;
 const int numTestsPerFace = 20; 
 
 void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2], float avgWidthHeight);
@@ -389,8 +389,7 @@ int main(){
         }
     }
 
-    //run the optimize function. 
-    //In the future can run multiple times to get a reasonable level of optimization
+    //run the optimize function multiple times, collecting time information each time
     float avgWidthHeight = (dVert+dHoriz)/2;
     long int time;
     long int timeLeft;
@@ -578,7 +577,7 @@ void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]
     TriFloatXYZ *C3;
     TriFloatXYZ *C4;
 
-    float maxPointDeviation = (0.25)*avgWidthHeight;
+    float maxPointDeviation = (0.1)*avgWidthHeight;
     int randAdjP1;
     int randAdjP2;
     int randAdjP3;
