@@ -46,20 +46,6 @@ struct Triangle{
     TriFloatXYZ *P1;
     TriFloatXYZ *P2;
     TriFloatXYZ *P3;
-    ~Triangle() {
-        if(normal != nullptr){
-            delete normal;
-        }
-        if(P1 != nullptr){
-            delete P1;
-        }
-        if(P2 != nullptr){
-            delete P2;
-        }
-        if(P3 != nullptr){
-            delete P3;
-        }
-    }
 };
 
 //used when testing individual faces in seperate threads
@@ -277,7 +263,6 @@ private:
 // MAIN *********************************************
 //Creates basic curve, optimizes curve, creates top, bottom, sides, and back.
 int main(){
-    _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
     std::cout << "Making an optimized curved backboard.\n";
     
     //all units are cm for simplicity
