@@ -26,7 +26,6 @@ Creating a simple curved backboard.
 #include <vector>
 #include <string.h>
 #include <chrono>
-#include <crtdbg.h>
 
 //for STL Class
 #define FLOAT_E (float)1e-09 //used for float comparison
