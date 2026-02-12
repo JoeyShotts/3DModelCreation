@@ -13,6 +13,9 @@ Creating a simple curved backboard.
 
 // Also could update time estimate to be some kind of running average to get more acurate estimation.
 // Also time estimate still isn't acurate, I think because when threads need to be run multiple times, thread average isn't accurate.
+// Could try to move some of the functions across a couple files.
+// Also there should be some kind of clean up function for the STL class.
+// Could try to utilize a gpu for faster calculations.
 
 //Fix:
 // Investigate the FaceTest and look for something obvious (why is it only on half?)
@@ -27,7 +30,7 @@ Creating a simple curved backboard.
 #include <vector>
 #include <string.h>
 #include <chrono>
-
+#include <crtdbg.h>
 
 //for STL Class
 #define FLOAT_E (float)1e-09 //used for float comparison
@@ -43,6 +46,20 @@ struct Triangle{
     TriFloatXYZ *P1;
     TriFloatXYZ *P2;
     TriFloatXYZ *P3;
+    ~Triangle() {
+        if(normal != nullptr){
+            delete normal;
+        }
+        if(P1 != nullptr){
+            delete P1;
+        }
+        if(P2 != nullptr){
+            delete P2;
+        }
+        if(P3 != nullptr){
+            delete P3;
+        }
+    }
 };
 
 //used when testing individual faces in seperate threads
@@ -61,20 +78,20 @@ struct faceTest{
 #define numDivHoriz (int)20 //must be even
 
 //functions used to test face
-const int numOptimizations = 10;
+const int numOptimizations = 0;
 void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2], float avgWidthHeight);
 void testFace(void* faceIn);
 void findTrajectory(TriFloatXYZ* ballEnd, TriFloatXYZ* bouncePoint, TriFloatXYZ* ballStart, TriFloatXYZ* faceNV, float maxH);
 
 //STL Class Definitions **************************************************************
 //for new point
-TriFloatXYZ *nP(float X, float Y, float Z){
-    TriFloatXYZ *point = new TriFloatXYZ;
-    point->X = X;
-    point->Y = Y;
-    point->Z = Z;
-    return point;
-}
+// TriFloatXYZ *nP(float X, float Y, float Z){
+//     TriFloatXYZ *point = new TriFloatXYZ;
+//     point->X = X;
+//     point->Y = Y;
+//     point->Z = Z;
+//     return point;
+// }
 
 void copyPoint(TriFloatXYZ *copiedPoint, TriFloatXYZ *origPoint){
     copiedPoint->X=origPoint->X;
@@ -260,6 +277,7 @@ private:
 // MAIN *********************************************
 //Creates basic curve, optimizes curve, creates top, bottom, sides, and back.
 int main(){
+    _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
     std::cout << "Making an optimized curved backboard.\n";
     
     //all units are cm for simplicity
@@ -339,8 +357,8 @@ int main(){
             tri1= BackBoard.addTriangle(&C1, &C2, &C3);
             tri2= BackBoard.addTriangle(&C1, &C3, &C4);
 
-            // useful to find individual faces when testing
-            // if(i==0 && j==0){
+            // useful to find individual faces for testing
+            // if(i==(halfVert-1) && j==(-halfHoriz)){
             //     std::cout<<"Specific Face.";
             // }
             
@@ -504,8 +522,9 @@ int main(){
 
     //Render STL
     std::cout << "Generated with " << BackBoard.numTriangles() << " faces." <<std::endl;
-    std::cout << "Rendering STL.";
+    std::cout << "Rendering STL.\n";
     BackBoard.renderSTL("OptimizedBackBoard.stl");
+
     std::cout << "Program Completed Successfully.";
     return 0;
 }
@@ -544,7 +563,7 @@ void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]
     int randAdjP4;
 
     const int numTestsPerFace = 20; 
-    const int maxActiveThreads = 10; 
+    const int maxActiveThreads = 20; 
     int numCurrentThreads=0;
     int mostRecentActiveThread;
     faceTest faceTests[numTestsPerFace];
@@ -696,10 +715,10 @@ const float ballRadius = 5.08;
 const float ballBounceRestitution = 0.5; //how bouncy the ball is
 const float targetY = 15-ballRadius;
 const TriFloatXYZ targetPoint = {11.5f, targetY, -1.5f};
-const float maxTargetDis = 3; //max distance from target that will likely still go in the hoop
+const float maxTargetDis = 4; //max distance from target that will likely still go in the hoop
 const float maxTargetDisSquared = maxTargetDis*maxTargetDis;
 
-const float dShooter = 1; //defines the iterating size in cm over the shooter area
+const float dShooter = 2; //defines the iterating size in cm over the shooter area
 
 //based on typical height of an individual, shooting just over the head
 const float shootHeightMin = 155; //5ft
@@ -713,8 +732,8 @@ const float maxArcHeight = 245; //around 8ft or the typical ceiling height
 const float minAcceptablemaxHOffset = 10; 
 
 const float minShootDistance = 50; //min distance from target, 1.6 ft
-const float shootBoxWidth = 200; //shooter box width
-const float shootBoxDepth = 200; //shooter box depth
+const float shootBoxWidth = 40; //shooter box width
+const float shootBoxDepth = 40; //shooter box depth
 const float shootBoxHeight = shootHeightMax-shootHeightMin;
 const float shootBoxXStart = targetPoint.X - shootBoxWidth/2;
 

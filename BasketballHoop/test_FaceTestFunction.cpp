@@ -84,12 +84,23 @@ void getNormal(Triangle* tri){
 }
 
 int main(){
-    std::cout << "Testing Two Faces: \n";
+    std::cout << "Testing Three Faces: \n";
     faceTest middleTest = {{17,3,8.5}, {17,3.034,10.2}, {18.7,3.068,10.2}, {18.7,3.034, 8.5}, 0,0,false};
     testFace(&middleTest);
-    
     std::cout << "Middle Test(0,0): " << middleTest.performance<<"\n";
 
+    faceTest bottomLeft = {{0,7.25,0}, {0,6.944,1.7}, {1.7,6.298,1.7}, {1.7,6.604, 0}, 0,0,false};
+    testFace(&bottomLeft);
+    std::cout << "Bottom Left Test(-halfHoriz,-halfVert,0): " << bottomLeft.performance<<"\n";
+
+    faceTest topLeft = {{0,6.944,15.3}, {0,7.25,17}, {1.7,6.604,17}, {1.7,6.298, 15.3}, 0,0,false};
+    testFace(&topLeft);
+    std::cout << "Top Left Test(-halfHoriz, halfVert,0): " << topLeft.performance<<"\n";
+
+    //I'm not sure about this test, I think it's more succefful than it should have been
+    faceTest flat = {{0,6.944,17}, {0,7.25,17}, {1.7,6.604,17}, {1.7,6.298, 17}, 0,0,false};
+    testFace(&flat);
+    std::cout << "Flat: " << topLeft.performance<<"\n";
 
     return 0;
 }
@@ -105,7 +116,7 @@ const float ballRadius = 5.08;
 const float ballBounceRestitution = 0.5; //how bouncy the ball is
 const float targetY = 15-ballRadius;
 const TriFloatXYZ targetPoint = {11.5f, targetY, -1.5f};
-const float maxTargetDis = 15; //max distance from target that will likely still go in the hoop
+const float maxTargetDis = 4; //max distance from target that will likely still go in the hoop
 const float maxTargetDisSquared = maxTargetDis*maxTargetDis;
 
 const float dShooter = 1; //defines the iterating size in cm over the shooter area
@@ -122,8 +133,8 @@ const float maxArcHeight = 245; //around 8ft or the typical ceiling height
 const float minAcceptablemaxHOffset = 10; 
 
 const float minShootDistance = 50; //min distance from target, 1.6 ft
-const float shootBoxWidth = 200; //shooter box width
-const float shootBoxDepth = 200; //shooter box depth
+const float shootBoxWidth = 400; //shooter box width
+const float shootBoxDepth = 400; //shooter box depth
 const float shootBoxHeight = shootHeightMax-shootHeightMin;
 const float shootBoxXStart = targetPoint.X - shootBoxWidth/2;
 
@@ -202,11 +213,12 @@ void testFace(void* faceIn){
     }
 
     face->performance = ((float)numTargetHits)/numShootPos; //percentage of successful shots
-
+    std::cout<<numTargetHits<<"/"<<numShootPos<<"\n";
     auto stop = std::chrono::high_resolution_clock::now();
     
     //calculate the duration it took
     face->time = (int)(std::chrono::duration_cast<std::chrono::milliseconds>(stop - start)).count();
+    std::cout<<"Completed in "<< face->time/1000 << " seconds.\n";
     face->testCompleted = true;
 }
 
