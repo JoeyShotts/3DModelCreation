@@ -6,19 +6,6 @@ Description:
 Creating a simple curved backboard.
 */
 
-//Problems:
-// The output seems only to be on one side, and seems to be random. 
-// The problem cause could be the trajectory function, the faceTest function, the small test size,
-// the ML algorithm doesn't work, or some other unknown problem.
-
-// Could try to utilize a gpu for faster calculations.
-//Need to adjust it bc if I'm only changing one point, that means it's only changing a triangle, not a face
-
-//Fix:
-// Investigate the FaceTest and look for something obvious (why is it only on half?)
-// Try testing at a larger sample size.
-// Write some tests for the trajectory function.
-// Then do some more research into ML algroithims.
 
 #include <thread>
 #include <fstream> 
