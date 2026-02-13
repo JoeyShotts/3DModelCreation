@@ -612,7 +612,7 @@ void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]
     // Source: https://cplusplus.com/reference/thread/thread/thread/
 
 
-    int numFaces = numDivHoriz*numDivVert; 
+    const int numFaces = numDivHoriz*numDivVert; 
     int faceToRandIndex[numFaces];
     int faceID; //integer divide by numDivHoriz to get row(0-numDivVert), modulo numDivHoriz to get column(0-numDivHoriz)
 
