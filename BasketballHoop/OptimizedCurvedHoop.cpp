@@ -282,7 +282,7 @@ int main(){
     //all units are cm for simplicity
     //defines back square of backboard
     float backHeight = 17;
-    float backWidth = 34;
+    float backWidth = 32;
     float dVert = backHeight/numDivVert;
     float dHoriz = backWidth/numDivHoriz;
     
@@ -731,9 +731,10 @@ void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]
 }
 
 //Constants for Single Face Test*********************************************
-const float ballRadius = 5.08;
-const float targetY = 15-ballRadius;
-const TriFloatXYZ targetPoint = {11.5f, targetY, -1.5f};
+const float ballRadius = 5.08f;
+const float targetY = 11.5f-ballRadius;
+const TriFloatXYZ targetPoint = {16.0f, targetY, -1.5f};
+const float originToGnd = 186.2f; //origin height from ground
 
 const int maxNumExceptions = 10; //max num exceptions that occur when finding trajectory
 //shooter area: all area that a shot may occur from
@@ -742,11 +743,11 @@ const int maxNumExceptions = 10; //max num exceptions that occur when finding tr
 const float maxTargetDis = 4; //max distance from target that will likely still go in the hoop
 const float maxTargetDisSquared = maxTargetDis*maxTargetDis;
 
-const float dShooter = 2; //defines the iterating size in cm over the shooter area
+const float dShooter = 1; //defines the iterating size in cm over the shooter area
 
 //based on typical height of an individual, shooting just over the head
-const float shootHeightMin = 155; //5ft
-const float shootHeightMax = 200; //6.5 ft
+const float shootHeightMin = 155.0f; //5ft
+const float shootHeightMax = 200.0f; //6.5 ft
 
 const float maxArcHeight = 245; //around 8ft or the typical ceiling height
 
@@ -756,9 +757,9 @@ const float maxArcHeight = 245; //around 8ft or the typical ceiling height
 const float minAcceptablemaxHOffset = 10; 
 
 const float minShootDistance = 50; //min distance from target, 1.6 ft
-const float shootBoxWidth = 40; //shooter box width
-const float shootBoxDepth = 40; //shooter box depth
-const float shootBoxHeight = shootHeightMax-shootHeightMin;
+const float shootBoxWidth = 100; //shooter box width
+const float shootBoxDepth = 100; //shooter box depth
+const float shootBoxHeight = shootHeightMax-shootHeightMin; 
 const float shootBoxXStart = targetPoint.X - shootBoxWidth/2;
 
 const int shootBoxXDiv = (int)(shootBoxWidth/dShooter);
@@ -800,16 +801,18 @@ void testFace(void* faceIn){
                 //determine ball starting point
                 ballStart.X = i*dShooter + shootBoxXStart;
                 ballStart.Y = j*dShooter + minShootDistance;
-                ballStart.Z = k*dShooter + shootHeightMin;
+                ballStart.Z = k*dShooter + shootHeightMin - originToGnd; //relative to origin
 
                 //ensures that the maxH the ball reaches still follows a parabolic arc
-                minAcceptableMaxHeight = (bouncePoint.Z-ballStart.Z)/2 + ballStart.Z + minAcceptablemaxHOffset;
+                minAcceptableMaxHeight = (bouncePoint.Z-ballStart.Z)/2 + ballStart.Z + minAcceptablemaxHOffset; //relative to ground
 
                 for(int l=0; l<maxHDiv; l++){
-                    maxH = l*dShooter + shootHeightMin;
+                    maxH = l*dShooter + shootHeightMin; //relative to ground
                     if(maxH < minAcceptableMaxHeight){
                         continue;
                     }
+                    maxH -= originToGnd; // make it relative to origin
+
                     //try to find a target. As this happens a lot (and math erros could happen), a simple try-except block was added.
                     try {
                         findTrajectory(&ballEnd, &bouncePoint, &ballStart, &faceNV, maxH);

@@ -56,13 +56,14 @@ void findTrajectory(TriFloatXYZ* ballEnd, TriFloatXYZ* bouncePoint, TriFloatXYZ*
 void testTrajectories(Triangle* face, float maxH, TriFloatXYZ* ballEnd, TriFloatXYZ* ballStart);
 
 int main(){
-    float maxH = 220; //200-245
-    TriFloatXYZ ballStart = {20, 20, 0}; //relative to front corner of shooter box
+    float maxH = 220; //200-245, relative to the ground, not origin
+    TriFloatXYZ ballStart = {20, 20, 0}; //relative to front corner of shooter box, not origin
     TriFloatXYZ ballEnd;
-    TriFloatXYZ N = {0,0,0}; //normal (ignored)
+    TriFloatXYZ N = {0,0,0};
     TriFloatXYZ P1 = {17,3,8.5};
     TriFloatXYZ P2 = {17,3.034,10.2};
     TriFloatXYZ P3 = {18.7,3.068,10.2};
+    //normal is [-0.01999,0.9996,-0.01999]
 
     Triangle middleTest = {(&N), &P1, &P2, &P3};
     testTrajectories(&middleTest, maxH, &ballEnd, &ballStart);
@@ -72,6 +73,16 @@ int main(){
     std::cout << " Z: "<<ballEnd.Z;
 
     // Triangle bottomLeft = {&(TriFloatXYZ){0,0,0}, &(TriFloatXYZ){0,7.25,0}, &(TriFloatXYZ){0,6.944,1.7}, &(TriFloatXYZ){1.7,6.298,1.7}};
+    //bottom left test
+    P1 = {0,7.25,0};
+    P2 = {0,6.944,1.7};
+    P3 = {1.7,6.298,1.7};
+    Triangle bottomLeft = {(&N), &P1, &P2, &P3};
+    testTrajectories(&bottomLeft, maxH, &ballEnd, &ballStart);
+    std::cout << "Result:";
+    std::cout << " X: "<<ballEnd.X;
+    std::cout << " Y: "<<ballEnd.Y;
+    std::cout << " Z: "<<ballEnd.Z;
 
     // Triangle topLeft = {&(TriFloatXYZ){0,0,0}, &(TriFloatXYZ){0,6.944,15.3}, &(TriFloatXYZ){0,7.25,17}, &(TriFloatXYZ){1.7,6.604,17}};
 
@@ -86,9 +97,9 @@ const float shootHeightMin = 155; //5ft
 // const float maxArcHeight = 245; //around 8ft or the typical ceiling height
 
 const float ballRadius = 5.08;
-const float targetY = 15-ballRadius;
-const TriFloatXYZ targetPoint = {11.5f, targetY, -1.5f};
-
+const float targetY = 11.5f-ballRadius;
+const TriFloatXYZ targetPoint = {15, targetY, -1.5f};
+const float originHeight = 186.2; //origin height from ground
 const float minShootDistance = 50; //min distance from target, 1.6 ft
 const float shootBoxWidth = 40; //shooter box width
 const float shootBoxDepth = 40; //shooter box depth
@@ -97,40 +108,41 @@ const float shootBoxXStart = targetPoint.X - shootBoxWidth/2;
 void testTrajectories(Triangle* face, float maxH, TriFloatXYZ* ballEnd, TriFloatXYZ* ballStart){
     ballEnd->Z = targetPoint.Z; //always the same
     TriFloatXYZ bouncePoint;
-    TriFloatXYZ faceNV; //normal unit vector to face
 
     getNormal(face);
-
+    maxH -= originHeight;
     ballStart->X += shootBoxXStart;
     ballStart->Y += minShootDistance;
-    ballStart->Z += shootHeightMin;
+    ballStart->Z += (shootHeightMin - originHeight);
 
     //get center point of face
     bouncePoint.X = (face->P1->X + face->P2->X + face->P3->X)/3; 
     bouncePoint.Y = (face->P1->Y + face->P2->Y + face->P3->Y)/3; 
     bouncePoint.Z = (face->P1->Z + face->P2->Z + face->P3->Z)/3; 
 
-    findTrajectory(ballEnd, &bouncePoint, ballStart, &faceNV, maxH);
+    findTrajectory(ballEnd, &bouncePoint, ballStart, face->normal, maxH);
 
 }
 
 //FINDING TRAJECTORY **************************************************************************************************************
 //created externally to avoid creating a bunch of times
-TriFloatXYZ v2; //vector before bounce
-TriFloatXYZ v3; //vector after bounce
 
 const float g_a = 980.665; //cm/s^2
 const float ballBounceRestitution = 0.5; //how bouncy the ball is
 
-float dt1; //start point to pounce point 
-float dt2; //maxh to bounce point
-float dt3; //bounce point to end point
-float bounceProduct; //=(1+e)(v2⋅vn) scalar defined to help calculate vector bounce of ball
-float dz; //height change from bounce point to ballEnd
-float maxH2;
-
 //finds the ball end given parameters
 void findTrajectory(TriFloatXYZ* ballEnd, TriFloatXYZ* bouncePoint, TriFloatXYZ* ballStart, TriFloatXYZ* faceNV, float maxH){
+    //defined locally temporatily for getting values for debugging
+    TriFloatXYZ v2; //vector before bounce
+    TriFloatXYZ v3; //vector after bounce
+
+    float dt1; //start point to pounce point 
+    float dt2; //maxh to bounce point
+    float dt3; //bounce point to end point
+    float bounceProduct; //=(1+e)(v2⋅vn) scalar defined to help calculate vector bounce of ball
+    float dz; //height change from bounce point to ballEnd
+    float maxH2;
+    
     //solve for v2, speed vector before the bounce, first solve for dt1, time it takes to move from start point to bounce point
     dt2 = sqrt(2*(maxH-bouncePoint->Z)/g_a);
     dt1 = sqrt(2*(maxH-ballStart->Z)/g_a) + dt2;
