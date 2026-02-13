@@ -42,20 +42,37 @@ struct faceTest{
     bool  testCompleted;
 };
 
+//debug settings
 //critical values used to define shape backboard, essentially defines number of faces
-#define numDivVert (int)20 //must be even
-#define numDivHoriz (int)40 //must be even
+#define numDivVert (int)10 //must be even
+#define numDivHoriz (int)20 //must be even
 
 //0-1, how much to try adjusting a point in one iteration
 #define pointAdjustmentFactor 0.1f
 // define the shooting box size
-#define shootingBoxSize 100.0f 
+#define shootingBoxSize 40.0f 
 //define the iterating size of the shooting box (how many places will the program test)
-#define dShoot 1
+#define dShoot 2
 
 //functions used to test face
-const int numOptimizations = 10;
-const int numTestsPerFace = 10; 
+const int numOptimizations = 1;
+const int numTestsPerFace = 5; 
+
+// Testing settings
+// //critical values used to define shape backboard, essentially defines number of faces
+// #define numDivVert (int)20 //must be even
+// #define numDivHoriz (int)40 //must be even
+
+// //0-1, how much to try adjusting a point in one iteration
+// #define pointAdjustmentFactor 0.1f
+// // define the shooting box size
+// #define shootingBoxSize 100.0f 
+// //define the iterating size of the shooting box (how many places will the program test)
+// #define dShoot 1
+
+// //functions used to test face
+// const int numOptimizations = 10;
+// const int numTestsPerFace = 10; 
 
 void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2], float avgWidthHeight);
 void testFace(void* faceIn);
