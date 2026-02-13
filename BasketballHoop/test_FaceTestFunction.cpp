@@ -106,7 +106,7 @@ int main(){
 }
 
 //Constants for Single Face Test*********************************************
-const float ballRadius = 5.08f;
+const float ballRadius = 4.4f;
 const float targetY = 11.5f-ballRadius;
 const TriFloatXYZ targetPoint = {16.0f, targetY, -1.5f};
 const float originToGnd = 186.2f; //origin height from ground

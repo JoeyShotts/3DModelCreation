@@ -55,12 +55,12 @@ struct faceTest{
 };
 
 //critical values used to define shape backboard, essentially defines number of faces
-#define numDivVert (int)20 //must be even
-#define numDivHoriz (int)40 //must be even
+#define numDivVert (int)10 //must be even
+#define numDivHoriz (int)20 //must be even
 
 //functions used to test face
-const int numOptimizations = 20;
-const int numTestsPerFace = 20; 
+const int numOptimizations = 10;
+const int numTestsPerFace = 10; 
 
 void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2], float avgWidthHeight);
 void testFace(void* faceIn);
@@ -731,7 +731,7 @@ void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]
 }
 
 //Constants for Single Face Test*********************************************
-const float ballRadius = 5.08f;
+const float ballRadius = 4.4f;
 const float targetY = 11.5f-ballRadius;
 const TriFloatXYZ targetPoint = {16.0f, targetY, -1.5f};
 const float originToGnd = 186.2f; //origin height from ground
@@ -743,7 +743,7 @@ const int maxNumExceptions = 10; //max num exceptions that occur when finding tr
 const float maxTargetDis = 4; //max distance from target that will likely still go in the hoop
 const float maxTargetDisSquared = maxTargetDis*maxTargetDis;
 
-const float dShooter = 1; //defines the iterating size in cm over the shooter area
+const float dShooter = 2; //defines the iterating size in cm over the shooter area
 
 //based on typical height of an individual, shooting just over the head
 const float shootHeightMin = 155.0f; //5ft
@@ -757,8 +757,8 @@ const float maxArcHeight = 245; //around 8ft or the typical ceiling height
 const float minAcceptablemaxHOffset = 10; 
 
 const float minShootDistance = 50; //min distance from target, 1.6 ft
-const float shootBoxWidth = 100; //shooter box width
-const float shootBoxDepth = 100; //shooter box depth
+const float shootBoxWidth = 40; //shooter box width
+const float shootBoxDepth = 40; //shooter box depth
 const float shootBoxHeight = shootHeightMax-shootHeightMin; 
 const float shootBoxXStart = targetPoint.X - shootBoxWidth/2;
 

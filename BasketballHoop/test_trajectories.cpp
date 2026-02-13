@@ -96,7 +96,7 @@ const float shootHeightMin = 155; //5ft
 // const float shootHeightMax = 200; //6.5 ft
 // const float maxArcHeight = 245; //around 8ft or the typical ceiling height
 
-const float ballRadius = 5.08;
+const float ballRadius = 4.4f;
 const float targetY = 11.5f-ballRadius;
 const TriFloatXYZ targetPoint = {15, targetY, -1.5f};
 const float originHeight = 186.2; //origin height from ground
