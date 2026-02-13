@@ -67,7 +67,7 @@ struct faceTest{
 #define dShoot 1
 
 //functions used to test face
-const int numOptimizations = 1;
+const int numOptimizations = 10;
 const int numTestsPerFace = 10; 
 
 void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2], float avgWidthHeight);
