@@ -12,6 +12,7 @@ Creating a simple curved backboard.
 // the ML algorithm doesn't work, or some other unknown problem.
 
 // Could try to utilize a gpu for faster calculations.
+//Need to adjust it bc if I'm only changing one point, that means it's only changing a triangle, not a face
 
 //Fix:
 // Investigate the FaceTest and look for something obvious (why is it only on half?)
@@ -58,8 +59,15 @@ struct faceTest{
 #define numDivVert (int)10 //must be even
 #define numDivHoriz (int)20 //must be even
 
+//0-1, how much to try adjusting a point in one iteration
+#define pointAdjustmentFactor 0.1f
+// define the shooting box size
+#define shootingBoxSize 40.0f 
+//define the iterating size of the shooting box (how many places will the program test)
+#define dShoot 2
+
 //functions used to test face
-const int numOptimizations = 10;
+const int numOptimizations = 1;
 const int numTestsPerFace = 10; 
 
 void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2], float avgWidthHeight);
@@ -357,7 +365,7 @@ int main(){
             tri2= BackBoard.addTriangle(&C1, &C3, &C4);
 
             // useful to find individual faces for testing
-            // if(i==(halfVert-1) && j==(-halfHoriz)){
+            // if(i==0 && j==0){
             //     std::cout<<"Specific Face.";
             // }
             
@@ -388,9 +396,10 @@ int main(){
     }
 
     //run the optimize function multiple times, collecting time information each time
-    float avgWidthHeight = (dVert+dHoriz)/2;
-    long int time;
-    long int timeLeft;
+    float avgWidthHeight = (dVert+dHoriz)/2; // this refers to the average length of a side of a face, 
+    // used to help determine how much to adjust each point
+    long int time; //time it takes to complete an optimization
+    long int timeLeft; //total time left
     auto startTotal = std::chrono::high_resolution_clock::now(); //get start time
     for(int i=0; i<numOptimizations; i++){
         auto start = std::chrono::high_resolution_clock::now(); //get start time
@@ -575,7 +584,7 @@ void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]
     TriFloatXYZ *C3;
     TriFloatXYZ *C4;
 
-    float maxPointDeviation = (0.1)*avgWidthHeight;
+    float maxPointDeviation = pointAdjustmentFactor*avgWidthHeight;
     int randAdjP1;
     int randAdjP2;
     int randAdjP3;
@@ -588,7 +597,10 @@ void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]
     }
     std::cout << "Max Active Threads: " << maxActiveThreads<<"\n";
     //used to predict time an optimization will take
-    const int concurrencyFactor = (int)(numTestsPerFace/maxActiveThreads);
+    int concurrencyFactor = (int)(numTestsPerFace/maxActiveThreads);
+    if(concurrencyFactor < 1){
+        concurrencyFactor=1;
+    }
 
     int numCurrentThreads=0;
     int mostRecentActiveThread;
@@ -596,7 +608,7 @@ void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]
     std::vector<std::thread> faceThreads;
     // Source: https://cplusplus.com/reference/thread/thread/thread/
 
-        //loop through all faces
+
     int numFaces = numDivHoriz*numDivVert; 
     int faceToRandIndex[numFaces];
     int faceID; //integer divide by numDivHoriz to get row(0-numDivVert), modulo numDivHoriz to get column(0-numDivHoriz)
@@ -616,6 +628,7 @@ void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]
         faceToRandIndex[i] = saveVal;
     }
 
+    //loop through all faces rnadomly
     for(int i=0; i<numFaces; i++){
         faceID = faceToRandIndex[i];
         
@@ -704,15 +717,15 @@ void optimizeBackboardCurve(Triangle* curvedFrontTris[numDivVert][numDivHoriz*2]
         for(int j=0; j<numTestsPerFace; j++){
             averageTime += faceTests[j].time;
         }
-        averageTime /= numTestsPerFace;
+        averageTime /= (float)numTestsPerFace;
         secondsToGo = (long int)((numFaces-i)*averageTime/1e03f)*concurrencyFactor;
         if(i!=0){
             //print out the time if 5% has happened
             if((int)(((float)i/numFaces)*100) - percentTracker > 5){
                 percentTracker+=5;
-                std::cout << percentTracker << "% completed. " << "Time Left: " << (secondsToGo/60/60);
-                std::cout << " hours, " << (secondsToGo/60)%60 << "minutes, ";
-                std::cout << secondsToGo%60 << " seconds.\n";
+                std::cout << percentTracker << "% completed. " << "Time Left: ";
+                printTime(secondsToGo);
+                std::cout << "\n";
             }
         } //first cycle complete print time prediction
         else{
@@ -743,7 +756,7 @@ const int maxNumExceptions = 10; //max num exceptions that occur when finding tr
 const float maxTargetDis = 4; //max distance from target that will likely still go in the hoop
 const float maxTargetDisSquared = maxTargetDis*maxTargetDis;
 
-const float dShooter = 2; //defines the iterating size in cm over the shooter area
+const float dShooter = dShoot; //defines the iterating size in cm over the shooter area
 
 //based on typical height of an individual, shooting just over the head
 const float shootHeightMin = 155.0f; //5ft
@@ -757,10 +770,10 @@ const float maxArcHeight = 245; //around 8ft or the typical ceiling height
 const float minAcceptablemaxHOffset = 10; 
 
 const float minShootDistance = 50; //min distance from target, 1.6 ft
-const float shootBoxWidth = 40; //shooter box width
-const float shootBoxDepth = 40; //shooter box depth
+const float shootBoxWidth = shootingBoxSize; //shooter box width
+const float shootBoxDepth = shootingBoxSize; //shooter box depth
 const float shootBoxHeight = shootHeightMax-shootHeightMin; 
-const float shootBoxXStart = targetPoint.X - shootBoxWidth/2;
+const float shootBoxXStart = targetPoint.X - shootBoxWidth/2.0f;
 
 const int shootBoxXDiv = (int)(shootBoxWidth/dShooter);
 const int shootBoxYDiv = (int)(shootBoxDepth/dShooter);
