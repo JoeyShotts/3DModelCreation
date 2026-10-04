@@ -1,3 +1,11 @@
+**Overview** 
+This is a personal project I created to practice my applied math and Cpp skills. The shapes and programs do work, but they are not very clean.
+
+Mobius Strip Math Documentation:
+Here is some of the 3D math used to create the mobius strip.
+https://www.mathcha.io/editor/4yMzZt4GfLpHEZJGkkTnelm45cmQylz0Fz00xpy 
+
+**Sources:**
 https://en.wikipedia.org/wiki/STL_(file_format)
 
 **Binary .stl:** 
